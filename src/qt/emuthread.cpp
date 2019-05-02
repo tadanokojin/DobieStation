@@ -19,17 +19,10 @@ void EmuThread::reset()
     e.reset();
 }
 
-void EmuThread::set_skip_BIOS_hack(SKIP_HACK skip)
+void EmuThread::set_boot_settings(EmuBootSettings settings)
 {
     load_mutex.lock();
-    e.set_skip_BIOS_hack(skip);
-    load_mutex.unlock();
-}
-
-void EmuThread::set_vu1_mode(VU_MODE mode)
-{
-    load_mutex.lock();
-    e.set_vu1_mode(mode);
+    e.set_boot_settings(settings);
     load_mutex.unlock();
 }
 

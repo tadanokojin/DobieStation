@@ -79,6 +79,9 @@ int EmuWindow::load_exec(const char* file_name, bool skip_BIOS)
         return 1;
     }
 
+    EmuBootSettings settings = {};
+    settings.surface = render_widget->get_native_handle();
+
     QString ext = file_info.suffix();
     if(QString::compare(ext, "elf", Qt::CaseInsensitive) == 0)
     {
@@ -98,19 +101,19 @@ int EmuWindow::load_exec(const char* file_name, bool skip_BIOS)
         );
 
         if (skip_BIOS)
-            emu_thread.set_skip_BIOS_hack(SKIP_HACK::LOAD_ELF);
+            settings.skip_hack = SKIP_HACK::LOAD_ELF;
     }
     else if (QString::compare(ext, "iso", Qt::CaseInsensitive) == 0)
     {
         emu_thread.load_CDVD(file_name, CDVD_CONTAINER::ISO);
         if (skip_BIOS)
-            emu_thread.set_skip_BIOS_hack(SKIP_HACK::LOAD_DISC);
+            settings.skip_hack = SKIP_HACK::LOAD_DISC;
     }
     else if (QString::compare(ext, "cso", Qt::CaseInsensitive) == 0)
     {
         emu_thread.load_CDVD(file_name, CDVD_CONTAINER::CISO);
         if (skip_BIOS)
-            emu_thread.set_skip_BIOS_hack(SKIP_HACK::LOAD_DISC);
+            settings.skip_hack = SKIP_HACK::LOAD_DISC;
     }
     else if (QString::compare(ext, "gsd", Qt::CaseInsensitive) == 0)
         emu_thread.gsdump_read(file_name);
@@ -120,10 +123,17 @@ int EmuWindow::load_exec(const char* file_name, bool skip_BIOS)
         return 1;
     }
 
-    set_vu1_mode();
+    if (Settings::instance().vu1_jit_enabled)
+        settings.vu_mode = VU_MODE::JIT;
+    else
+        settings.vu_mode = VU_MODE::INTERPRETER;
 
+    set_vu1_mode();
     current_ROM = file_info;
+
+    emu_thread.set_boot_settings(settings);
     emu_thread.unpause(PAUSE_EVENT::GAME_NOT_LOADED);
+
     show_render_view();
 
     return 0;
@@ -481,7 +491,7 @@ void EmuWindow::update_FPS(int FPS)
     if (elapsed_update_seconds.count() >= 1.0)
     {
         // avoid multiple copies
-        QString status = QString("%1 FPS - %2 [VU1: %3]").arg(
+        QString status = QString("%1 FPS - %2 [VU1: %3] [Vulkan Software]").arg(
             QString::number(FPS), current_ROM.fileName(), vu1_mode
         );
 
@@ -624,5 +634,4 @@ void EmuWindow::set_vu1_mode()
         mode = VU_MODE::INTERPRETER;
         vu1_mode = "Interpreter";
     }
-    emu_thread.set_vu1_mode(mode);
 }

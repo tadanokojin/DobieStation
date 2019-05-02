@@ -39,6 +39,13 @@ enum VU_MODE {
     INTERPRETER
 };
 
+struct EmuBootSettings
+{
+    SKIP_HACK skip_hack;
+    VU_MODE vu_mode;
+    void* surface;
+};
+
 class Emulator
 {
     private:
@@ -112,8 +119,7 @@ class Emulator
         void update_joystick(JOYSTICK joystick, JOYSTICK_AXIS axis, uint8_t val);
         bool skip_BIOS();
         void fast_boot();
-        void set_skip_BIOS_hack(SKIP_HACK type);
-        void set_vu1_mode(VU_MODE mode);
+        void set_boot_settings(EmuBootSettings settings);
         void load_BIOS(const uint8_t* BIOS);
         void load_ELF(const uint8_t* ELF, uint32_t size);
         bool load_CDVD(const char* name, CDVD_CONTAINER type);

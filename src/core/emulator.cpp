@@ -30,7 +30,6 @@ Emulator::Emulator() :
     ELF_size = 0;
     gsdump_single_frame = false;
     ee_log.open("ee_log.txt", std::ios::out);
-    set_vu1_mode(VU_MODE::DONT_CARE);
 }
 
 Emulator::~Emulator()
@@ -311,14 +310,9 @@ void Emulator::fast_boot()
     }
 }
 
-void Emulator::set_skip_BIOS_hack(SKIP_HACK type)
+void Emulator::set_boot_settings(EmuBootSettings settings)
 {
-    skip_BIOS_hack = type;
-}
-
-void Emulator::set_vu1_mode(VU_MODE mode)
-{
-    switch (mode)
+    switch (settings.vu_mode)
     {
         case VU_MODE::INTERPRETER:
             vu1_run_func = &VectorUnit::run;
@@ -328,6 +322,8 @@ void Emulator::set_vu1_mode(VU_MODE mode)
             vu1_run_func = &VectorUnit::run_jit;
             break;
     }
+
+	skip_BIOS_hack = settings.skip_hack;
 }
 
 void Emulator::load_BIOS(const uint8_t *BIOS_file)

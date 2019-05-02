@@ -2,6 +2,7 @@
 #include <QImageWriter>
 #include <QDateTime>
 #include <QDebug>
+#include <QWindow>
 
 #include "renderwidget.hpp"
 #include "settings.hpp"
@@ -13,6 +14,9 @@ RenderWidget::RenderWidget(QWidget* parent)
     palette.setColor(QPalette::Background, Qt::black);
     setPalette(palette);
     setAutoFillBackground(true);
+
+    // We need a native window to render to
+    setAttribute(Qt::WA_NativeWindow);
 }
 
 void RenderWidget::draw_frame(uint32_t* buffer, int inner_w, int inner_h, int final_w, int final_h)
@@ -84,4 +88,11 @@ void RenderWidget::screenshot()
     }
 
     writer.write(final_image);
+}
+
+void* RenderWidget::get_native_handle() const
+{
+    return reinterpret_cast<void*>(
+        windowHandle()->winId()
+    );
 }
