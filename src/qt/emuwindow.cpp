@@ -16,14 +16,10 @@
 #include "gamelistwidget.hpp"
 #include "bios.hpp"
 
-#include "arg.h"
-
-using namespace std;
-
 EmuWindow::EmuWindow(QWidget *parent) : QMainWindow(parent)
 {
-    old_frametime = chrono::system_clock::now();
-    old_update_time = chrono::system_clock::now();
+    old_frametime = std::chrono::system_clock::now();
+    old_update_time = std::chrono::system_clock::now();
     framerate_avg = 0.0;
 
     render_widget = new RenderWidget;
@@ -68,57 +64,6 @@ EmuWindow::EmuWindow(QWidget *parent) : QMainWindow(parent)
     //Initialize window
     show_default_view();
     show();
-}
-
-int EmuWindow::init(int argc, char** argv)
-{
-    bool skip_BIOS = false;
-    char* argv0; // Program name; AKA argv[0]
-
-    char* bios_name = nullptr, *file_name = nullptr, *gsdump = nullptr;
-
-    ARGBEGIN {
-        case 'b':
-            bios_name = ARGF();
-            Settings::instance().set_bios_path(
-                QString::fromLocal8Bit(bios_name)
-            );
-            break;
-        case 'f':
-            file_name = ARGF();
-            break;
-        case 's':
-            skip_BIOS = true;
-            break;
-        case 'g':
-            gsdump = ARGF();
-            break;
-        case 'h':
-        default:
-            printf("usage: %s [options]\n\n", argv0);
-            printf("options:\n");
-            printf("-b {BIOS}\tspecify BIOS\n");
-            printf("-f {ELF/ISO}\tspecify ELF/ISO\n");
-            printf("-h\t\tshow this message\n");
-            printf("-s\t\tskip BIOS\n");
-            printf("-g {.GSD}\t\trun a gsdump\n");
-            return 1;
-    } ARGEND
-
-    if (gsdump)
-    {
-        return load_exec(gsdump, false);
-    }
-
-    if (file_name)
-    {
-        if (load_exec(file_name, skip_BIOS))
-            return 1;
-    }
-
-    Settings::instance().save();
-
-    return 0;
 }
 
 int EmuWindow::load_exec(const char* file_name, bool skip_BIOS)
@@ -529,13 +474,14 @@ void EmuWindow::keyReleaseEvent(QKeyEvent *event)
 
 void EmuWindow::update_FPS(int FPS)
 {
+    using namespace std;
     // average framerate over 1 second
     chrono::system_clock::time_point now = chrono::system_clock::now();
     chrono::duration<double> elapsed_update_seconds = now - old_update_time;
     if (elapsed_update_seconds.count() >= 1.0)
     {
         // avoid multiple copies
-        QString status = QString("FPS: %1 - %2 [VU1: %3]").arg(
+        QString status = QString("%1 FPS - %2 [VU1: %3]").arg(
             QString::number(FPS), current_ROM.fileName(), vu1_mode
         );
 
