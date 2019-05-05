@@ -227,6 +227,7 @@
     <ClCompile Include="..\src\core\emulator.cpp" />
     <ClCompile Include="..\src\core\video\vulkanloader.cpp" />
     <ClCompile Include="..\src\core\video\vulkanutils.cpp" />
+    <ClCompile Include="..\src\core\video\vulkancontext.cpp" />
     <ClCompile Include="..\src\qt\emuthread.cpp" />
     <ClCompile Include="..\src\qt\emuwindow.cpp" />
     <ClCompile Include="..\src\qt\renderwidget.cpp" />
@@ -315,6 +316,7 @@
     <ClInclude Include="..\src\core\emulator.hpp" />
     <ClInclude Include="..\src\core\video\vulkanloader.hpp" />
     <ClInclude Include="..\src\core\video\vulkanutils.hpp" />
+    <ClInclude Include="..\src\core\video\vulkancontext.hpp" />
     <ClInclude Include="..\src\qt\bios.hpp" />
     <ClInclude Include="..\src\core\errors.hpp" />
     <ClInclude Include="..\src\core\iop\gamepad.hpp" />

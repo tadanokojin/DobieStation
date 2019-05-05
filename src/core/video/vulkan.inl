@@ -4,6 +4,8 @@ VK_GLOBAL_FUNC( vkGetInstanceProcAddr )
 
 #ifdef VK_MODULE_FUNC
 VK_MODULE_FUNC( vkCreateInstance )
+VK_MODULE_FUNC( vkEnumerateInstanceLayerProperties )
+VK_MODULE_FUNC( vkEnumerateInstanceExtensionProperties )
 #endif
 
 #ifdef VK_INSTANCE_FUNC
@@ -16,6 +18,14 @@ VK_INSTANCE_FUNC( vkCreateDevice )
 VK_INSTANCE_FUNC( vkGetDeviceProcAddr )
 VK_INSTANCE_FUNC( vkEnumerateDeviceExtensionProperties )
 VK_INSTANCE_FUNC( vkGetPhysicalDeviceMemoryProperties )
+
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+VK_INSTANCE_FUNC( vkCreateWin32SurfaceKHR )
+#endif
+
+VK_INSTANCE_FUNC( vkCreateDebugReportCallbackEXT )
+VK_INSTANCE_FUNC( vkDestroyDebugReportCallbackEXT )
+VK_INSTANCE_FUNC( vkDebugReportMessageEXT )
 #endif
 
 #ifdef VK_DEVICE_FUNC
