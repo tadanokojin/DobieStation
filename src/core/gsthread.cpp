@@ -71,8 +71,8 @@ float interpolate_f(int32_t x, float u1, int32_t x1, float u2, int32_t x2)
 
 const unsigned int GraphicsSynthesizerThread::max_vertices[8] = {1, 2, 2, 3, 3, 3, 2, 0};
 
-GraphicsSynthesizerThread::GraphicsSynthesizerThread()
-    : frame_complete(false), local_mem(nullptr)
+GraphicsSynthesizerThread::GraphicsSynthesizerThread(WindowSystem::Info wsi)
+    : frame_complete(false), local_mem(nullptr), window_system_info(wsi)
 {
     //Initialize swizzling tables
     for (int block = 0; block < 32; block++)

@@ -6,6 +6,8 @@
 #include "gsthread.hpp"
 #include "gsregisters.hpp"
 
+#include "../common/wsi.hpp"
+
 class INTC;
 
 class GraphicsSynthesizer
@@ -24,7 +26,7 @@ class GraphicsSynthesizer
 
         GraphicsSynthesizerThread gs_thread;
     public:
-        GraphicsSynthesizer(INTC* intc);
+        GraphicsSynthesizer(INTC* intc, WindowSystem::Info wsi);
         ~GraphicsSynthesizer();
 
         void reset();

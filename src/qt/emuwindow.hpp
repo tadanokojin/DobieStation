@@ -9,6 +9,7 @@
 
 #include "../qt/settings.hpp"
 #include "../core/emulator.hpp"
+#include "../common/wsi.hpp"
 
 class SettingsWindow;
 class RenderWidget;
@@ -17,13 +18,11 @@ class EmuWindow : public QMainWindow
 {
     Q_OBJECT
     private:
-        EmuThread emu_thread;
-        QString vu1_mode;
+        EmuThread* emu_thread;
         std::chrono::system_clock::time_point old_frametime;
         std::chrono::system_clock::time_point old_update_time;
         double framerate_avg;
 
-        QFileInfo current_ROM;
         QMenu* file_menu;
         QMenu* options_menu;
         QMenu* emulation_menu;
@@ -36,18 +35,14 @@ class EmuWindow : public QMainWindow
         QStackedWidget* stack_widget;
         RenderWidget* render_widget;
 
-        SettingsWindow* settings_window = nullptr;
+        SettingsWindow* settings_window;
 
-        void set_vu1_mode();
         void show_render_view();
         void show_default_view();
     public:
         explicit EmuWindow(QWidget *parent = nullptr);
-        int load_exec(const char* file_name, bool skip_BIOS);
-
+        void boot(QString file, bool fast);
         void create_menu();
-
-        bool load_bios();
         void open_settings_window();
         void closeEvent(QCloseEvent *event) override;
         void keyPressEvent(QKeyEvent *event) override;
@@ -64,7 +59,7 @@ class EmuWindow : public QMainWindow
         void release_key(PAD_BUTTON button);
         void update_joystick(JOYSTICK joystick, JOYSTICK_AXIS axis, uint8_t val);
     public slots:
-        void update_FPS(int FPS);
+        void update_FPS(const QString& FPS);
         void open_file_no_skip();
         void open_file_skip();
         void load_state();

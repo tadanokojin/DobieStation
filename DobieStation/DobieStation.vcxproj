@@ -296,6 +296,7 @@
   </ItemGroup>
   <!-- headers -->
   <ItemGroup>
+    <ClInclude Include="..\src\common\wsi.hpp" />
     <ClInclude Include="..\src\core\ee\bios_hle.hpp" />
     <ClInclude Include="..\src\core\iop\cdvd.hpp" />
     <ClInclude Include="..\src\core\ee\ipu\chromtable.hpp" />

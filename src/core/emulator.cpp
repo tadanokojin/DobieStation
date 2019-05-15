@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sstream>
+#include <algorithm>
 #include "emulator.hpp"
 #include "errors.hpp"
 
@@ -15,9 +16,9 @@
 #define EELOAD_START 0x82000
 #define EELOAD_SIZE 0x20000
 
-Emulator::Emulator() :
+Emulator::Emulator(EmuBootSettings settings, WindowSystem::Info wsi) :
     cdvd(this, &iop_dma), cp0(&dmac), cpu(&cp0, &fpu, this, &vu0, &vu1),
-    dmac(&cpu, this, &gif, &ipu, &sif, &vif0, &vif1, &vu0, &vu1), gif(&gs), gs(&intc),
+    dmac(&cpu, this, &gif, &ipu, &sif, &vif0, &vif1, &vu0, &vu1), gif(&gs), gs(&intc, wsi),
     iop(this), iop_dma(this, &cdvd, &sif, &sio2, &spu, &spu2), iop_timers(this), intc(this, &cpu), ipu(&intc),
     timers(&intc), sio2(this, &pad, &memcard), spu(1, this, &iop_dma), spu2(2, this, &iop_dma),
     vif0(&gif, &vu0, &intc, 0), vif1(&gif, &vu1, &intc, 1), vu0(0, this, &intc, &cpu), vu1(1, this, &intc, &cpu), sif(&iop_dma)
@@ -30,12 +31,15 @@ Emulator::Emulator() :
     ELF_size = 0;
     gsdump_single_frame = false;
     ee_log.open("ee_log.txt", std::ios::out);
+
+    reset();
 }
 
 Emulator::~Emulator()
 {
     if (ee_log.is_open())
         ee_log.close();
+
     delete[] RDRAM;
     delete[] IOP_RAM;
     delete[] BIOS;
@@ -116,7 +120,7 @@ void Emulator::reset()
     iop_i_ctrl_delay = 0;
     ee_stdout = "";
     frames = 0;
-    skip_BIOS_hack = NONE;
+    //skip_BIOS_hack = NONE;
     if (!RDRAM)
         RDRAM = new uint8_t[1024 * 1024 * 32];
     if (!IOP_RAM)
@@ -310,42 +314,85 @@ void Emulator::fast_boot()
     }
 }
 
-void Emulator::set_boot_settings(EmuBootSettings settings)
-{
-    switch (settings.vu_mode)
-    {
-        case VU_MODE::INTERPRETER:
-            vu1_run_func = &VectorUnit::run;
-            break;
-        case VU_MODE::JIT:
-        default:
-            vu1_run_func = &VectorUnit::run_jit;
-            break;
-    }
-
-	skip_BIOS_hack = settings.skip_hack;
-}
-
-void Emulator::load_BIOS(const uint8_t *BIOS_file)
+void Emulator::load_BIOS(EmuBootSettings settings)
 {
     if (!BIOS)
         BIOS = new uint8_t[1024 * 1024 * 4];
 
-    memcpy(BIOS, BIOS_file, 1024 * 1024 * 4);
+    memcpy(BIOS, settings.bios, 1024 * 1024 * 4);
 }
 
-void Emulator::load_ELF(const uint8_t *ELF, uint32_t size)
+void Emulator::load_ROM(EmuBootSettings settings)
 {
-    if (ELF[0] != 0x7F || ELF[1] != 'E' || ELF[2] != 'L' || ELF[3] != 'F')
+    if(settings.vu1_jit)
+        vu1_run_func = &VectorUnit::run_jit;
+    else
+        vu1_run_func = &VectorUnit::run;
+
+    std::string file = settings.rom_path;
+    std::string ext;
+
+    if (file.find_last_of(".") != std::string::npos)
+        ext = file.substr(file.find_last_of(".") + 1);
+    
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+    // TODO: clean this up
+    bool fast_boot = settings.fast_boot;
+    if (ext == "iso")
     {
-        printf("Invalid elf\n");
-        return;
+        skip_BIOS_hack = fast_boot ? SKIP_HACK::LOAD_DISC : SKIP_HACK::NONE;
+
+        if (!load_CDVD(file.c_str(), CDVD_CONTAINER::ISO))
+            Errors::die("[Emulator] Failed to load iso file %s", file);
     }
-    printf("Valid elf\n");
+    else if(ext == "cso")
+    {
+        skip_BIOS_hack = fast_boot ? SKIP_HACK::LOAD_DISC : SKIP_HACK::NONE;
+
+        if (!load_CDVD(file.c_str(), CDVD_CONTAINER::CISO))
+            Errors::die("[Emulator] Failed to load cso file %s", file);
+    }
+    else if (ext == "elf")
+    {
+        skip_BIOS_hack = fast_boot ? SKIP_HACK::LOAD_ELF : SKIP_HACK::NONE;
+
+        if(!load_ELF(file.c_str()))
+            Errors::die("[Emulator] Failed to load elf file %s", file);
+    }
+    else
+        Errors::die("[Emulator] Unsupported ROM file");
+}
+
+bool Emulator::load_ELF(const char* name)
+{
+    std::ifstream file_data;
+    file_data.open(name, std::ifstream::binary);
+
+    if (!file_data.is_open())
+        return false;
+
+    file_data.seekg(0, file_data.end);
+    int size = file_data.tellg();
+    file_data.seekg(0, file_data.beg);
+
     delete[] ELF_file;
     ELF_file = new uint8_t[size];
     ELF_size = size;
-    memcpy(ELF_file, ELF, size);
+
+    file_data.read((char*)ELF_file, size);
+
+    if (ELF_file[0] != 0x7F || ELF_file[1] != 'E' || ELF_file[2] != 'L' || ELF_file[3] != 'F')
+    {
+        printf("Invalid elf\n");
+        file_data.close();
+        return false;
+    }
+
+    printf("Valid elf\n");
+
+    file_data.close();
+    return true;
 }
 
 bool Emulator::load_CDVD(const char *name, CDVD_CONTAINER type)

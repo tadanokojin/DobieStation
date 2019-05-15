@@ -9,6 +9,8 @@
 #include "gsregisters.hpp"
 #include "circularFIFO.hpp"
 
+#include "../common/wsi.hpp"
+
 //Commands sent from the main thread to the GS thread.
 enum GSCommand:uint8_t 
 {
@@ -234,6 +236,8 @@ class GraphicsSynthesizerThread
         bool send_data = false;
         bool recieve_data = false;
 
+        WindowSystem::Info window_system_info;
+
         gs_fifo* message_queue = nullptr;
         gs_return_fifo* return_queue = nullptr;
 
@@ -375,7 +379,7 @@ class GraphicsSynthesizerThread
         void load_state(std::ifstream* state);
         void save_state(std::ofstream* state);
     public:
-        GraphicsSynthesizerThread();
+        GraphicsSynthesizerThread(WindowSystem::Info wsi);
         ~GraphicsSynthesizerThread();
         
         // safe to access from emu thread

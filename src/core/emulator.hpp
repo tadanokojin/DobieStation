@@ -26,6 +26,8 @@
 #include "sif.hpp"
 #include "scheduler.hpp"
 
+#include "../common/wsi.hpp"
+
 enum SKIP_HACK
 {
     NONE,
@@ -33,17 +35,20 @@ enum SKIP_HACK
     LOAD_DISC
 };
 
-enum VU_MODE {
-    DONT_CARE,
-    JIT,
-    INTERPRETER
-};
-
 struct EmuBootSettings
 {
-    SKIP_HACK skip_hack;
-    VU_MODE vu_mode;
-    void* surface;
+    bool fast_boot;
+    bool vu1_jit;
+    uint8_t* bios;
+    std::string rom_path;
+
+    EmuBootSettings() = default;
+    ~EmuBootSettings() = default;
+
+    std::string vu_mode_string() const
+    {
+        return vu1_jit ? "JIT" : "Interpreter";
+    }
 };
 
 class Emulator
@@ -109,7 +114,7 @@ class Emulator
 
         bool frame_ended;
     public:
-        Emulator();
+        Emulator(EmuBootSettings settings, WindowSystem::Info wsi);
         ~Emulator();
         void run();
         void reset();
@@ -119,9 +124,9 @@ class Emulator
         void update_joystick(JOYSTICK joystick, JOYSTICK_AXIS axis, uint8_t val);
         bool skip_BIOS();
         void fast_boot();
-        void set_boot_settings(EmuBootSettings settings);
-        void load_BIOS(const uint8_t* BIOS);
-        void load_ELF(const uint8_t* ELF, uint32_t size);
+        void load_ROM(EmuBootSettings settings);
+        void load_BIOS(EmuBootSettings settings);
+        bool load_ELF(const char* name);
         bool load_CDVD(const char* name, CDVD_CONTAINER type);
         void execute_ELF();
         uint32_t* get_framebuffer();

@@ -13,9 +13,10 @@ in/out of the GS, mostly with the GIF but also with the privileged
 registers.
 **/
 
-GraphicsSynthesizer::GraphicsSynthesizer(INTC* intc) 
+GraphicsSynthesizer::GraphicsSynthesizer(INTC* intc, WindowSystem::Info wsi) 
     : intc(intc), frame_complete(false),
-    output_buffer1(nullptr), output_buffer2(nullptr)
+    output_buffer1(nullptr), output_buffer2(nullptr),
+    gs_thread(wsi)
 {
 }
 
