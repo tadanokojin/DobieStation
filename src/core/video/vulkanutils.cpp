@@ -1,11 +1,13 @@
+#include "vulkanloader.hpp"
 #include "vulkanutils.hpp"
+#include "../emulator.hpp"
 #include <stdio.h>
 
 namespace Vulkan
 {
     void log_result(const char* function_name, VkResult res, const char* msg)
     {
-        Errors::die("%s %s %s", function_name, result_to_string(res));
+        Errors::die("%s: %s %s", function_name, msg, result_to_string(res));
     }
 
     const char* result_to_string(VkResult res)
@@ -87,5 +89,217 @@ namespace Vulkan
         default:
             return "UNKNOWN_VK_RESULT";
         }
+    }
+
+    GPUInfo::GPUInfo()
+        : device(VK_NULL_HANDLE), surface(VK_NULL_HANDLE),
+        graphics_queue_index(std::numeric_limits<uint32_t>::max()),
+        present_queue_index(std::numeric_limits<uint32_t>::max()),
+        features({}), properties({})
+    {
+    }
+
+    void GPUInfo::check_extension_support()
+    {
+        uint32_t count = 0;
+        vkEnumerateDeviceExtensionProperties(
+            device, nullptr,
+            &count, nullptr
+        );
+
+        available_extensions.resize(count);
+
+        vkEnumerateDeviceExtensionProperties(
+            device, nullptr,
+            &count, available_extensions.data()
+        );
+
+        fprintf(stderr, "Available device extensions:\n");
+        for (const auto& extension : available_extensions)
+            fprintf(stderr, "\t%s\n", extension.extensionName);
+    }
+
+    bool GPUInfo::has_extension_support(const char* name)
+    {
+        for (const auto& extension : available_extensions)
+        {
+            if (strcmp(extension.extensionName, name) == 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    void GPUInfo::enable_extension(const char* name, bool required = false)
+    {
+        if (has_extension_support(name))
+        {
+            enabled_extensions.push_back(name);
+
+            fprintf(stderr, "Enabling device extension: %s\n", name);
+            return;
+        }
+
+        if (required)
+            Errors::die("Could not enable required device extension %s", name);
+
+        fprintf(stderr, "Tried to enable device extension %s but not supported\n", name);
+    }
+
+    void GPUInfo::populate_queue_indices()
+    {
+        // We need the internal id of each queue
+        // this corresponds to the index of the array
+        // returned by vkGetPhysicalDeviceQueueFamilyProperties
+        uint32_t selected_index = std::numeric_limits<uint32_t>::max();
+
+        for (uint32_t i = 0; i < queue_family_properties.size(); ++i)
+        {
+            VkBool32 can_present = VK_FALSE;
+            bool has_graphics = queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+
+            VkResult res;
+             res = vkGetPhysicalDeviceSurfaceSupportKHR(
+                 device, i, surface, &can_present
+             );
+
+             if (res != VK_SUCCESS)
+                 VK_PANIC(res, "vkGetPhysicalDeviceSurfaceSupportKHR");
+
+            // prefer a queue with both
+            if (can_present == VK_TRUE && has_graphics)
+            {
+                graphics_queue_index = i;
+                present_queue_index = i;
+                break;
+            }
+
+            if (has_graphics)
+                graphics_queue_index = i;
+
+            if (can_present == VK_TRUE)
+                present_queue_index = i;
+
+            // we found both queues no need to keep looking
+            if (graphics_queue_index != std::numeric_limits<uint32_t>::max()
+                && present_queue_index != std::numeric_limits<uint32_t>::max())
+                break;
+        }
+    }
+
+    void InstanceInfo::check_layer_support()
+    {
+        uint32_t count = 0;
+
+        VkResult res;
+        res = vkEnumerateInstanceLayerProperties(
+            &count, nullptr
+        );
+
+        if (res != VK_SUCCESS)
+            VK_PANIC(res, "vkEnumerateInstanceLayerProperties");
+
+        available_layers.resize(count);
+
+        res = vkEnumerateInstanceLayerProperties(
+            &count, available_layers.data()
+        );
+
+        if (res != VK_SUCCESS)
+            VK_PANIC(res, "vkEnumerateInstanceLayerProperties");
+
+        fprintf(stderr, "Available instance layers:\n");
+        for (const auto& layer : available_layers)
+            fprintf(stderr, "\t%s\n", layer.layerName);
+    }
+
+    void InstanceInfo::check_extension_support()
+    {
+        uint32_t count = 0;
+
+        VkResult res;
+        res = vkEnumerateInstanceExtensionProperties(
+            nullptr, &count, nullptr
+        );
+
+        if (res != VK_SUCCESS)
+            VK_PANIC(res, "vkEnumerateInstanceExtensionProperties");
+
+        available_extensions.resize(count);
+
+        res = vkEnumerateInstanceExtensionProperties(
+            nullptr, &count, available_extensions.data()
+        );
+
+        if (res != VK_SUCCESS)
+            VK_PANIC(res, "vkEnumerateInstanceExtensionProperties");
+
+        fprintf(stderr, "Available instance extensions:\n");
+        for (const auto& extension : available_extensions)
+            fprintf(stderr, "\t%s\n", extension.extensionName);
+    }
+
+    bool InstanceInfo::has_layer_support(const char* name)
+    {
+        for (const auto& layer : available_layers)
+        {
+            if (strcmp(layer.layerName, name) == 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool InstanceInfo::has_extension_support(const char* name)
+    {
+        for (const auto& extension : available_extensions)
+        {
+            if (strcmp(extension.extensionName, name) == 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    void InstanceInfo::enable_layer(const char* name, bool required = false)
+    {
+        if (has_layer_support(name))
+        {
+            enabled_layers.push_back(name);
+
+            fprintf(stderr, "Enabling layer: %s\n", name);
+            return;
+        }
+
+        if (required)
+            Errors::die("Couldn't enable required layer %s", name);
+
+        fprintf(stderr, "Tried to enable layer %s but not supported\n", name);
+    }
+
+    void InstanceInfo::enable_extension(const char* name, bool required = false)
+    {
+        if (has_extension_support(name))
+        {
+            enabled_extensions.push_back(name);
+
+            fprintf(stderr, "Enabling extension: %s\n", name);
+            return;
+        }
+
+        if (required)
+            Errors::die("Could not enable required extension %s", name);
+
+        fprintf(stderr, "Tried to enable extension %s but not supported\n", name);
+    }
+
+    void InstanceInfo::enable_reporting()
+    {
+        enable_extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    void InstanceInfo::enable_debug_layer()
+    {
+        enable_layer("VK_LAYER_LUNARG_standard_validation");
     }
 }

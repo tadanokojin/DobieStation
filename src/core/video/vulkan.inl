@@ -18,14 +18,18 @@ VK_INSTANCE_FUNC( vkCreateDevice )
 VK_INSTANCE_FUNC( vkGetDeviceProcAddr )
 VK_INSTANCE_FUNC( vkEnumerateDeviceExtensionProperties )
 VK_INSTANCE_FUNC( vkGetPhysicalDeviceMemoryProperties )
+VK_INSTANCE_FUNC( vkGetPhysicalDeviceSurfaceSupportKHR )
+VK_INSTANCE_FUNC( vkGetPhysicalDeviceSurfacePresentModesKHR )
+VK_INSTANCE_FUNC( vkGetPhysicalDeviceSurfaceCapabilitiesKHR )
+VK_INSTANCE_FUNC( vkGetPhysicalDeviceSurfaceFormatsKHR )
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 VK_INSTANCE_FUNC( vkCreateWin32SurfaceKHR )
 #endif
 
-VK_INSTANCE_FUNC( vkCreateDebugReportCallbackEXT )
-VK_INSTANCE_FUNC( vkDestroyDebugReportCallbackEXT )
-VK_INSTANCE_FUNC( vkDebugReportMessageEXT )
+VK_INSTANCE_FUNC( vkCreateDebugUtilsMessengerEXT )
+VK_INSTANCE_FUNC( vkDestroyDebugUtilsMessengerEXT )
+VK_INSTANCE_FUNC( vkDestroySurfaceKHR )
 #endif
 
 #ifdef VK_DEVICE_FUNC
@@ -35,4 +39,10 @@ VK_DEVICE_FUNC( vkAllocateMemory )
 VK_DEVICE_FUNC( vkBindBufferMemory )
 VK_DEVICE_FUNC( vkCreateBuffer )
 VK_DEVICE_FUNC( vkDestroyBuffer )
+VK_DEVICE_FUNC( vkBindImageMemory )
+VK_DEVICE_FUNC( vkCreateSwapchainKHR )
+VK_DEVICE_FUNC( vkGetSwapchainImagesKHR )
+VK_DEVICE_FUNC( vkDestroySwapchainKHR )
+VK_DEVICE_FUNC( vkCreateImageView )
+VK_DEVICE_FUNC( vkDestroyImageView )
 #endif

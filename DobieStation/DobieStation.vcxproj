@@ -225,6 +225,7 @@
     <ClCompile Include="..\src\core\ee\emotiondisasm.cpp" />
     <ClCompile Include="..\src\core\ee\emotioninterpreter.cpp" />
     <ClCompile Include="..\src\core\emulator.cpp" />
+    <ClCompile Include="..\src\core\video\swapchain.cpp" />
     <ClCompile Include="..\src\core\video\vulkanloader.cpp" />
     <ClCompile Include="..\src\core\video\vulkanutils.cpp" />
     <ClCompile Include="..\src\core\video\vulkancontext.cpp" />
@@ -315,6 +316,7 @@
     <ClInclude Include="..\src\core\ee\emotiondisasm.hpp" />
     <ClInclude Include="..\src\core\ee\emotioninterpreter.hpp" />
     <ClInclude Include="..\src\core\emulator.hpp" />
+    <ClInclude Include="..\src\core\video\swapchain.hpp" />
     <ClInclude Include="..\src\core\video\vulkanloader.hpp" />
     <ClInclude Include="..\src\core\video\vulkanutils.hpp" />
     <ClInclude Include="..\src\core\video\vulkancontext.hpp" />

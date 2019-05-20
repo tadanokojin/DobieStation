@@ -5,7 +5,7 @@
 // so I'll explain it as we go for other people
 // who need to work in this file
 
-#ifdef WIN32
+#ifdef VK_USE_PLATFORM_WIN32_KHR
 #define LoadFuncAddress GetProcAddress
 #else
 #define LoadFuncAddress dlsym
@@ -33,7 +33,7 @@
 // TODO: We will need to do this for
 // other libraries so it would be nice
 // to abstract this code elsewhere
-#ifdef WIN32
+#ifdef VK_USE_PLATFORM_WIN32_KHR
 static HMODULE vulkan_module = nullptr;
 #else
 static void* vulkan_module = nullptr;
@@ -51,10 +51,17 @@ namespace Vulkan
         // Load the dynamic library here
         // I believe both linux and mac use dlopen
         // Mac will require you load moltenvk
-        #ifdef WIN32
+        #ifdef VK_USE_PLATFORM_WIN32_KHR
         vulkan_module = LoadLibrary(L"vulkan-1.dll");
-        #else
+        #endif
+
+        #ifdef VK_USE_PLATFORM_XLIB_KHR
         vulkan_module = dlopen("libvulkan.so", RTLD_NOW);
+        #endif
+
+        #ifdef VK_USE_PLATFORM_MACOS_MVK
+        fprintf(stderr, "Loader: MacOS not supported yet");
+        return false;
         #endif
 
         if (!vulkan_module)
@@ -143,7 +150,7 @@ namespace Vulkan
     {
         if (vulkan_module)
         {
-            #ifdef WIN32
+            #ifdef VK_USE_PLATFORM_WIN32_KHR
             FreeLibrary(vulkan_module);
             #else
             dlclose(vulkan_module);
