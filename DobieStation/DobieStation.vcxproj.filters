@@ -243,29 +243,44 @@
     </ClCompile>
     <ClCompile Include="$(QtMocOutPrefix)emuwindow.cpp">
       <Filter>Generated Files</Filter>
-	</ClCompile>
-	<ClCompile Include="$(QtMocOutPrefix)renderwidget.cpp">
+    </ClCompile>
+    <ClCompile Include="$(QtMocOutPrefix)renderwidget.cpp">
       <Filter>Generated Files</Filter>
-	</ClCompile>
-	<ClCompile Include="$(QtMocOutPrefix)settingswindow.cpp">
+    </ClCompile>
+    <ClCompile Include="$(QtMocOutPrefix)settingswindow.cpp">
       <Filter>Generated Files</Filter>
-	</ClCompile>
-	<ClCompile Include="$(QtMocOutPrefix)settings.cpp">
+    </ClCompile>
+    <ClCompile Include="$(QtMocOutPrefix)settings.cpp">
       <Filter>Generated Files</Filter>
-	</ClCompile>
-	<ClCompile Include="$(QtMocOutPrefix)gamelistwidget.cpp">
+    </ClCompile>
+    <ClCompile Include="$(QtMocOutPrefix)gamelistwidget.cpp">
       <Filter>Generated Files</Filter>
-	</ClCompile>
+    </ClCompile>
     <ClCompile Include="..\src\qt\renderwidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\qt\settingswindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-	<ClCompile Include="..\src\qt\gamelistwidget.cpp">
+    <ClCompile Include="..\src\qt\gamelistwidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\qt\bios.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\texture.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\video\vulkanloader.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\video\vulkanutils.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\video\vulkancontext.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\video\swapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -447,13 +462,34 @@
     <ClInclude Include="..\src\qt\bios.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\core\texture.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\video\vulkanloader.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\video\vulkanutils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\video\vulkancontext.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\video\swapchain.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\wsi.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\core\jitcommon\ir_instrlist.inc">
       <Filter>Distribution Files</Filter>
     </None>
     <None Include="..\README.md" />
-	<None Include="..\appveyor.yml" />
+    <None Include="..\appveyor.yml" />
+    <None Include="..\src\core\video\vulkan.inl">
+      <Filter>Header Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="..\src\core\ee\vu_jit_asm.asm">
@@ -473,10 +509,10 @@
     <QtMoc Include="..\src\qt\emuwindow.hpp">
       <Filter>Header Files</Filter>
     </QtMoc>
-	<QtMoc Include="..\src\qt\settings.hpp">
+    <QtMoc Include="..\src\qt\settings.hpp">
       <Filter>Header Files</Filter>
     </QtMoc>
-	<QtMoc Include="..\src\qt\gamelistwidget.hpp">
+    <QtMoc Include="..\src\qt\gamelistwidget.hpp">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

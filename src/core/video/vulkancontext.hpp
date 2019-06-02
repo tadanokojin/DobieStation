@@ -22,6 +22,13 @@ namespace Vulkan
 
             std::vector<GPUInfo> available_gpus;
 
+			enum QUEUE_INDEX
+			{
+				GRAPHICS_QUEUE_INDEX,
+				PRESENT_QUEUE_INDEX
+			};
+			std::array<VkQueue, 2> queues; // 0 graphics 1 present
+
             void add_available_gpu(VkPhysicalDevice device);
 
             bool find_physical_devices();
@@ -44,6 +51,8 @@ namespace Vulkan
 
             uint32_t get_graphics_queue_family_index() const { return selected_gpu.get_graphics_queue_index(); };
             uint32_t get_present_queue_family_index() const { return selected_gpu.get_present_queue_index(); };
+			VkQueue get_present_queue() const { return queues[PRESENT_QUEUE_INDEX]; };
+			VkQueue get_graphics_queue() const { return queues[GRAPHICS_QUEUE_INDEX]; };
     };
 }
 #endif

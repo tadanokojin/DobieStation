@@ -72,7 +72,7 @@ float interpolate_f(int32_t x, float u1, int32_t x1, float u2, int32_t x2)
 const unsigned int GraphicsSynthesizerThread::max_vertices[8] = {1, 2, 2, 3, 3, 3, 2, 0};
 
 GraphicsSynthesizerThread::GraphicsSynthesizerThread(WindowSystem::Info wsi)
-    : frame_complete(false), local_mem(nullptr), window_system_info(wsi)
+    : frame_complete(false), local_mem(nullptr), vulkan_context(wsi), swapchain(&vulkan_context)
 {
     //Initialize swizzling tables
     for (int block = 0; block < 32; block++)
@@ -120,6 +120,9 @@ GraphicsSynthesizerThread::~GraphicsSynthesizerThread()
     delete[] local_mem;
     delete message_queue;
     delete return_queue;
+
+	swapchain.destroy();
+	vulkan_context.destroy();
 }
 
 void GraphicsSynthesizerThread::wait_for_return(GSReturn type, GSReturnMessage &data)
@@ -406,6 +409,9 @@ void GraphicsSynthesizerThread::reset()
     PRMODE.reset();
 
     reset_fifos();
+
+	vulkan_context.reset();
+	swapchain.reset();
 }
 
 void GraphicsSynthesizerThread::memdump(uint32_t* target, uint16_t& width, uint16_t& height)
@@ -494,6 +500,7 @@ void GraphicsSynthesizerThread::render_single_CRT(uint32_t *target, DISPFB &disp
 
 void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
 {
+	swapchain.draw_frame();
     //Circuit 1 only
     if (reg.PMODE.circuit1 && !reg.PMODE.circuit2)
         render_single_CRT(target, reg.DISPFB1, reg.DISPLAY1);

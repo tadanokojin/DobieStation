@@ -9,7 +9,8 @@
 #include "gsregisters.hpp"
 #include "circularFIFO.hpp"
 
-#include "../common/wsi.hpp"
+#include "video/vulkancontext.hpp"
+#include "video/swapchain.hpp"
 
 //Commands sent from the main thread to the GS thread.
 enum GSCommand:uint8_t 
@@ -236,7 +237,8 @@ class GraphicsSynthesizerThread
         bool send_data = false;
         bool recieve_data = false;
 
-        WindowSystem::Info window_system_info;
+		Vulkan::Context vulkan_context;
+		Vulkan::SwapChain swapchain;
 
         gs_fifo* message_queue = nullptr;
         gs_return_fifo* return_queue = nullptr;

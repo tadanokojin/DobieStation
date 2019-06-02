@@ -97,7 +97,7 @@ void EmuWindow::boot(QString file, bool fast)
     connect(emu_thread, &QThread::finished, this, &EmuWindow::show_default_view);
 
     // TODO: Remove
-    connect(emu_thread, &EmuThread::completed_frame, render_widget, &RenderWidget::draw_frame);
+    //connect(emu_thread, &EmuThread::completed_frame, render_widget, &RenderWidget::draw_frame);
 
     // Don't delete the QThread until after it's finished.
     // Not doing so will cause a crash.
@@ -235,20 +235,7 @@ void EmuWindow::create_menu()
     options_menu = menuBar()->addMenu(tr("&Options"));
     options_menu->addAction(settings_action);
 
-    auto ignore_aspect_ratio_action =
-    new QAction(tr("&Ignore aspect ratio"), this);
-    ignore_aspect_ratio_action->setCheckable(true);
-
-    connect(ignore_aspect_ratio_action, &QAction::triggered, render_widget, [=] (){
-        render_widget->toggle_aspect_ratio();
-        ignore_aspect_ratio_action->setChecked(
-            !render_widget->get_respect_aspect_ratio()
-        );
-    });
-
     window_menu = menuBar()->addMenu(tr("&Window"));
-    window_menu->addAction(ignore_aspect_ratio_action);
-    window_menu->addSeparator();
 
     for (int factor = 1; factor <= RenderWidget::MAX_SCALING; factor++)
     {
@@ -276,12 +263,6 @@ void EmuWindow::create_menu()
 
         window_menu->addAction(scale_action);
     }
-
-    auto screenshot_action = new QAction(tr("&Take Screenshot"), this);
-    connect(screenshot_action, &QAction::triggered, render_widget, &RenderWidget::screenshot);
-
-    window_menu->addSeparator();
-    window_menu->addAction(screenshot_action);
 }
 
 void EmuWindow::open_settings_window()
@@ -354,9 +335,6 @@ void EmuWindow::keyPressEvent(QKeyEvent *event)
             break;
         case Qt::Key_K:
             emit update_joystick(JOYSTICK::LEFT, JOYSTICK_AXIS::Y, 0xFF);
-            break;
-        case Qt::Key_F8:
-            render_widget->screenshot();
             break;
     }
 }

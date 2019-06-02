@@ -5,6 +5,7 @@
 #include <array>
 #include <limits>
 #include <algorithm>
+#include <set>
 
 #include "vulkan/vulkan.h"
 namespace Vulkan
