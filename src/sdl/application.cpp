@@ -72,7 +72,8 @@ bool Application::init(Params& params)
         return false;
     }
 
-    emu.set_skip_BIOS_hack(LOAD_DISC);
+    if (!params.bios_boot)
+        emu.set_skip_BIOS_hack(LOAD_DISC);
     emu.set_ee_mode(CPU_MODE::JIT);
     emu.set_vu1_mode(CPU_MODE::JIT);
 
