@@ -11,6 +11,9 @@ Application::Application() :
 
 bool Application::init()
 {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER))
+        return false;
+
     // load bios
     if (!bios.open("bios.bin"))
         return false;
@@ -37,6 +40,7 @@ bool Application::init()
 void Application::free()
 {
     window.close();
+    SDL_Quit();
 }
 
 bool Application::frame()
