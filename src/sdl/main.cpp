@@ -11,6 +11,10 @@ constexpr int DEFAULT_HEIGHT = 448;
 
 int main(int argc, char** argv)
 {
+    constexpr int winpos = SDL_WINDOWPOS_UNDEFINED;
+    constexpr int pixfmt = SDL_PIXELFORMAT_ABGR8888;
+    constexpr int texacs = SDL_TEXTUREACCESS_STREAMING;
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER))
         return 1;
 
@@ -18,7 +22,6 @@ int main(int argc, char** argv)
     if (!bios.open("bios.bin"))
     	return 1;
 
-    const int winpos = SDL_WINDOWPOS_UNDEFINED;
     SDL_Window* window = SDL_CreateWindow("DobieSDL",
         winpos, winpos, DEFAULT_WIDTH, DEFAULT_HEIGHT,
         SDL_WINDOW_RESIZABLE);
@@ -35,9 +38,9 @@ int main(int argc, char** argv)
     	return 1;
     }
 
-    SDL_Texture* texture = SDL_CreateTexture(renderer,
-    	SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,
-    	DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    int tex_w = DEFAULT_WIDTH,
+        tex_h = DEFAULT_HEIGHT;
+    SDL_Texture* texture = SDL_CreateTexture(renderer, pixfmt, texacs, tex_w, tex_h);
     if (!texture)
     {
     	SDL_Quit();
@@ -58,10 +61,34 @@ int main(int argc, char** argv)
                 running = false;
         }
 
-        SDL_Delay(10); // Don't saturate
-        //emu->run();
+        try
+        {
+            emu->run();
 
-        //SDL_UpdateTexture(texture, rect, pixels, pitch);
+            int w, h, iw, ih;
+            emu->get_inner_resolution(iw, ih);
+            emu->get_resolution(w, h);
+
+            if (iw != tex_w || ih != tex_h)
+            {
+                SDL_DestroyTexture(texture);
+                texture = SDL_CreateTexture(renderer, pixfmt, texacs, tex_w, tex_h);
+                SDL_assert(texture);
+            }
+        }
+        catch (non_fatal_error& err)
+        {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Non-fatal emulation error", err.what(), window);
+        }
+        catch (Emulation_error& err)
+        {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal emulation error", err.what(), window);
+            fflush(stdout);
+            running = false;
+            break;
+        }
+
+        SDL_UpdateTexture(texture, nullptr, emu->get_framebuffer(), tex_w * 4);
 
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, nullptr, nullptr);

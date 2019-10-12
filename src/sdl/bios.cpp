@@ -38,5 +38,5 @@ bool BiosReader::open(const char* path)
     printf("%li\n", match("RESET"));
     printf("%li\n", match("ROMVER"));
 
-	return false;
+	return true;
 }
