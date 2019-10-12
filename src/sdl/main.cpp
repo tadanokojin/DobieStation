@@ -75,7 +75,7 @@ int main(int argc, char** argv)
             emu->get_inner_resolution(iw, ih);
             emu->get_resolution(w, h);
 
-            if (iw != tex_w || ih != tex_h)
+            if ((iw && ih) && (iw != tex_w || ih != tex_h))
             {
                 SDL_DestroyTexture(texture);
                 texture = SDL_CreateTexture(renderer, pixfmt, texacs, tex_w, tex_h);
