@@ -1,6 +1,7 @@
 #ifndef __APPLICATION_HPP__
 #define __APPLICATION_HPP__
 
+#include "params.hpp"
 #include "bios.hpp"
 #include "window.hpp"
 #include <emulator.hpp>
@@ -14,16 +15,19 @@ private:
 
     bool running;
 
-    bool init();
+    bool init(Params& params);
     void free();
     bool frame();
     void handle_event(SDL_Event& event);
+
+    enum class RomType { NONE, ELF, ISO, CSO };
+    bool open_rom(const char* path);
 
 public:
     Application();
     ~Application() = default;
 
-    int run();
+    int run(Params& params);
 };
 
 #endif//__APPLICATION_HPP__

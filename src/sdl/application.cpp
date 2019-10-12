@@ -9,22 +9,68 @@ Application::Application() :
 }
 
 
-bool Application::init()
+bool Application::open_rom(const char* path)
+{
+    RomType rom_type = RomType::NONE;
+    size_t path_len;
+    char ext[4];
+
+    if ((path_len = strlen(path)) < 5)
+    {
+        fprintf(stderr, "Unable to deduce file extension.\n");
+        return false;
+    }
+    for (size_t i = 0; i < 4; ++i)
+        ext[i] = (char)tolower(path[path_len - 4 + i]);
+    if (ext[0] != '.')
+    {
+        fprintf(stderr, "Unable to deduce file extension.\n");
+        return false;
+    }
+
+    if (strncmp(ext, ".elf", 4) == 0)
+        rom_type = RomType::ELF;
+    else if (strncmp(ext, ".iso", 4) == 0)
+        rom_type = RomType::ISO;
+    else if (strncmp(ext, ".cso", 4) == 0)
+        rom_type = RomType::CSO;
+
+    switch (rom_type)
+    {
+    case (RomType::ISO):
+        return emu.load_CDVD(path, CDVD_CONTAINER::ISO);
+    case (RomType::CSO):
+        return emu.load_CDVD(path, CDVD_CONTAINER::CISO);
+    default:
+    case (RomType::NONE):
+        fprintf(stderr, "Unrecognised file extension \"%.4s\".\n", ext);
+        return false;
+    }
+}
+
+bool Application::init(Params& params)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER))
         return false;
 
     // load bios
-    if (!bios.open("bios.bin"))
+    if (!bios.open(params.bios_path))
+    {
+        fprintf(stderr, "Fatal: failed to open BIOS image \"%s\".\n", params.bios_path);
         return false;
+    }
 
     // start emulator
     emu.reset();
     emu.load_BIOS(bios.data());
 
+    // load rom
     emu.reset();
-    if (!emu.load_CDVD("mbaa.cso", CDVD_CONTAINER::CISO))
+    if (!open_rom(params.rom_path))
+    {
+        fprintf(stderr, "Fatal: failed to open ROM image \"%s\".\n", params.rom_path);
         return false;
+    }
 
     emu.set_skip_BIOS_hack(LOAD_DISC);
     emu.set_ee_mode(CPU_MODE::JIT);
@@ -98,15 +144,14 @@ void Application::handle_event(SDL_Event& event)
 }
 
 
-int Application::run()
+int Application::run(Params& params)
 {
-    if (!init())
+    if (!init(params))
     {
         free();
         return 1;
     }
 
-    int err;
     while (running)
         if (!frame())
             {

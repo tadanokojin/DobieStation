@@ -1,4 +1,6 @@
 #include "application.hpp"
+#include "params.hpp"
+
 #include <SDL.h>
 #include <memory>
 #include <getopt.h>
@@ -11,9 +13,6 @@ static const struct option longopts[] =
 
     {nullptr, 0, nullptr, 0}
 };
-
-static const char* bios_path = nullptr;
-static const char* rom_path  = nullptr;
 
 void show_usage(const char* arg0)
 {
@@ -38,7 +37,7 @@ void show_help(const char* arg0)
     fflush(stderr);
 }
 
-bool parse_options(int argc, char** argv)
+bool parse_options(int argc, char** argv, Params& params)
 {
     int opt;
     while ((opt = getopt_long(argc, argv, "hb:", longopts, nullptr)) > 0)
@@ -54,7 +53,7 @@ bool parse_options(int argc, char** argv)
             return false;
 
         case ('b'):
-            bios_path = optarg;
+            params.bios_path = optarg;
             break;
 
         default:
@@ -65,9 +64,9 @@ bool parse_options(int argc, char** argv)
     return true;
 }
 
-bool parse_arguments(int argc, char** argv)
+bool parse_arguments(int argc, char** argv, Params& params)
 {
-    if (!parse_options(argc, argv))
+    if (!parse_options(argc, argv, params))
         return false;
 
     int argnum = argc - optind;
@@ -79,7 +78,7 @@ bool parse_arguments(int argc, char** argv)
     }
     else if (argnum == 1)
     {
-        rom_path = argv[optind];
+        params.rom_path = argv[optind];
     }
 
     return true;
@@ -87,29 +86,27 @@ bool parse_arguments(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    if (!parse_arguments(argc, argv))
+    Params params;
+    if (!parse_arguments(argc, argv, params))
         return 1;
 
-    if (!rom_path)
+    if (!params.rom_path)
     {
         fprintf(stderr, "No ROM path specified.\n");
         show_usage(argv[0]);
         return 1;
     }
 
-    if (!bios_path)
+    if (!params.bios_path)
     {
         fprintf(stderr, "A BIOS is required to use DobieStation.\n");
         show_usage(argv[0]);
         return 1;
     }
 
-    printf("Params:\nrom_path:  %s\nbios_path: %s\n", rom_path, bios_path);
-    return 0;
-
     auto app = std::make_unique<Application>();
     if (!app)
         return 1;
 
-    return app->run();
+    return app->run(params);
 }
