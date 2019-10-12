@@ -1,19 +1,22 @@
 #include <SDL.h>
 #include <emulator.hpp>
+#include "bios.hpp"
 
 #include <cstdio>
-#include <vector>
 #include <memory>
 
 
 constexpr int DEFAULT_WIDTH  = 640;
 constexpr int DEFAULT_HEIGHT = 448;
-constexpr int BIOS_SIZE = 1024 * 1024 * 4;
 
 int main(int argc, char** argv)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER))
         return 1;
+
+    BiosReader bios;
+    if (!bios.open("bios.bin"))
+    	return 1;
 
     const int winpos = SDL_WINDOWPOS_UNDEFINED;
     SDL_Window* window = SDL_CreateWindow("DobieSDL",
@@ -41,9 +44,9 @@ int main(int argc, char** argv)
     	return 1;
     }
 
-    auto emu = std::unique_ptr<Emulator>(new Emulator());
+    auto emu = std::make_unique<Emulator>();
     emu->reset();
-    //emu->load_BIOS(bios_data.data());
+    emu->load_BIOS(bios.data());
 
     bool running = true;
     while (running)

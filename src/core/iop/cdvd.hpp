@@ -95,7 +95,7 @@ class CDVD_Drive
         bool container_open(const char* file_path);
         void container_close();
         bool container_isopen();
-        void container_seek(std::ios::streamoff ofs, std::ios::seekdir whence = std::ios::beg);
+        void container_seek(std::streamoff ofs, std::ios::seekdir whence = std::ios::beg);
         uint64_t container_tell();
         size_t container_read(void* dst, size_t size);
 
