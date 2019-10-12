@@ -31,6 +31,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
     if (!renderer)
     {
@@ -50,8 +51,8 @@ int main(int argc, char** argv)
     auto emu = std::make_unique<Emulator>();
     emu->reset();
     emu->load_BIOS(bios.data());
-    emu->load_CDVD("mbaa.cso", CDVD_CONTAINER::CISO);
     emu->reset();
+    emu->load_CDVD("mbaa.cso", CDVD_CONTAINER::CISO);
     emu->set_skip_BIOS_hack(LOAD_DISC);
     emu->set_ee_mode(CPU_MODE::JIT);
     emu->set_vu1_mode(CPU_MODE::JIT);
