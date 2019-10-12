@@ -8,9 +8,10 @@
 
 static const struct option longopts[] =
 {
-    {"help", no_argument,       nullptr, 'h'},
-    {"bios", required_argument, nullptr, 'b'},
-    {"full", no_argument,       nullptr, 'f'},
+    {"help",        no_argument,       nullptr, 'h'},
+    {"bios",        required_argument, nullptr, 'b'},
+    {"full-boot",   no_argument,       nullptr, 'f'},
+    {"interpreter", no_argument,       nullptr, 'i'},
 
     {nullptr, 0, nullptr, 0}
 };
@@ -41,7 +42,7 @@ void show_help(const char* arg0)
 bool parse_options(int argc, char** argv, Params& params)
 {
     int opt;
-    while ((opt = getopt_long(argc, argv, "hfb:", longopts, nullptr)) > 0)
+    while ((opt = getopt_long(argc, argv, "hfib:", longopts, nullptr)) > 0)
     {
         switch (opt)
         {
@@ -59,6 +60,10 @@ bool parse_options(int argc, char** argv, Params& params)
 
         case ('f'):
             params.bios_boot = true;
+            break;
+
+        case ('i'):
+            params.interpreter = true;
             break;
 
         default:
