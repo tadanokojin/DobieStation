@@ -50,6 +50,11 @@ int main(int argc, char** argv)
     auto emu = std::make_unique<Emulator>();
     emu->reset();
     emu->load_BIOS(bios.data());
+    emu->load_CDVD("mbaa.cso", CDVD_CONTAINER::CISO);
+    emu->reset();
+    emu->set_skip_BIOS_hack(LOAD_DISC);
+    emu->set_ee_mode(CPU_MODE::JIT);
+    emu->set_vu1_mode(CPU_MODE::JIT);
 
     bool running = true;
     while (running)
@@ -78,13 +83,16 @@ int main(int argc, char** argv)
         }
         catch (non_fatal_error& err)
         {
+            printf("! non-fatal emulation error occurred !\n! %s\n", err.what());
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Non-fatal emulation error", err.what(), window);
         }
         catch (Emulation_error& err)
         {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal emulation error", err.what(), window);
+            printf("!!! FATAL emulation error occurred, stopping execution !!!\n!!! %s\n", err.what());
+            emu->print_state();
             fflush(stdout);
-            running = false;
+
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal emulation error", err.what(), window);
             break;
         }
 
