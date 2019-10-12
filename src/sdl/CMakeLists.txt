@@ -7,9 +7,11 @@ find_package(SDL2 REQUIRED)
 
 set(SOURCES
 	bios.cpp
+	application.cpp
     main.cpp)
 
 set(HEADERS
+	application.hpp
 	bios.hpp)
 
 add_executable(${TARGET} ${SOURCES} ${HEADERS})
