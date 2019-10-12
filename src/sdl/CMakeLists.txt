@@ -7,12 +7,14 @@ find_package(SDL2 REQUIRED)
 
 set(SOURCES
 	bios.cpp
+	window.cpp
 	application.cpp
     main.cpp)
 
 set(HEADERS
-	application.hpp
-	bios.hpp)
+	bios.hpp
+	window.hpp
+	application.hpp)
 
 add_executable(${TARGET} ${SOURCES} ${HEADERS})
 target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})

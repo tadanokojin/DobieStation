@@ -2,25 +2,17 @@
 #define __APPLICATION_HPP__
 
 #include "bios.hpp"
+#include "window.hpp"
 #include <emulator.hpp>
-
-typedef struct SDL_Window SDL_Window;
-typedef struct SDL_Renderer SDL_Renderer;
-typedef struct SDL_Texture SDL_Texture;
-typedef union SDL_Event SDL_Event;
 
 class Application
 {
 private:
-    SDL_Window* window;
-    SDL_Renderer* renderer;
-    SDL_Texture* texture;
-
-    bool running;
-    int tex_w, tex_h;
-
+    Window window;
     BiosReader bios;
     Emulator emu;
+
+    bool running;
 
     bool init();
     void free();
