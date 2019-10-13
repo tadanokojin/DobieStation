@@ -3,7 +3,8 @@
 
 
 Application::Application() :
-    running(false)
+    running(false),
+    pad(nullptr), joy_id(-1)
 {
 
 }
@@ -88,6 +89,7 @@ bool Application::init(Params& params)
 
 void Application::free()
 {
+    SDL_GameControllerClose(pad);
     window.close();
     SDL_Quit();
 }
@@ -132,6 +134,7 @@ bool Application::frame()
 
     return true;
 }
+
 
 void Application::key_event(int32_t keycode, bool down)
 {
@@ -178,6 +181,61 @@ void Application::key_event(int32_t keycode, bool down)
     }
 }
 
+void Application::button_event(int button, bool down)
+{
+    auto ds_button = PAD_BUTTON::NONE;
+
+    switch (button)
+    {
+    case (SDL_CONTROLLER_BUTTON_B): ds_button = PAD_BUTTON::CIRCLE;   break;
+    case (SDL_CONTROLLER_BUTTON_A): ds_button = PAD_BUTTON::CROSS;    break;
+    case (SDL_CONTROLLER_BUTTON_Y): ds_button = PAD_BUTTON::TRIANGLE; break;
+    case (SDL_CONTROLLER_BUTTON_X): ds_button = PAD_BUTTON::SQUARE;   break;
+
+    case (SDL_CONTROLLER_BUTTON_START): ds_button = PAD_BUTTON::START;  break;
+    case (SDL_CONTROLLER_BUTTON_BACK):  ds_button = PAD_BUTTON::SELECT; break;
+
+    case (SDL_CONTROLLER_BUTTON_LEFTSHOULDER):  ds_button = PAD_BUTTON::L1; break;
+    case (SDL_CONTROLLER_BUTTON_RIGHTSHOULDER): ds_button = PAD_BUTTON::R1; break;
+    case (SDL_CONTROLLER_BUTTON_LEFTSTICK):  ds_button = PAD_BUTTON::L3; break;
+    case (SDL_CONTROLLER_BUTTON_RIGHTSTICK): ds_button = PAD_BUTTON::R3; break;
+
+    case (SDL_CONTROLLER_BUTTON_DPAD_UP):    ds_button = PAD_BUTTON::UP;    break;
+    case (SDL_CONTROLLER_BUTTON_DPAD_DOWN):  ds_button = PAD_BUTTON::DOWN;  break;
+    case (SDL_CONTROLLER_BUTTON_DPAD_LEFT):  ds_button = PAD_BUTTON::LEFT;  break;
+    case (SDL_CONTROLLER_BUTTON_DPAD_RIGHT): ds_button = PAD_BUTTON::RIGHT; break;
+
+    default: break;
+    }
+
+    if (ds_button != PAD_BUTTON::NONE)
+    {
+        if (down)
+            emu.press_button(ds_button);
+        else
+            emu.release_button(ds_button);
+    }
+}
+
+void Application::joystick_event(int axis, int16_t value)
+{
+    auto ds_val   = (uint8_t)((uint16_t)(value + 0x8000) >> 8U);
+    auto trig_val = (uint8_t)((uint16_t)value >> 7U);
+
+    if (axis == SDL_CONTROLLER_AXIS_LEFTX)
+        emu.update_joystick(JOYSTICK::LEFT, JOYSTICK_AXIS::X, ds_val);
+    else if (axis == SDL_CONTROLLER_AXIS_LEFTY)
+        emu.update_joystick(JOYSTICK::LEFT, JOYSTICK_AXIS::Y, ds_val);
+    else if (axis == SDL_CONTROLLER_AXIS_RIGHTX)
+        emu.update_joystick(JOYSTICK::RIGHT, JOYSTICK_AXIS::X, ds_val);
+    else if (axis == SDL_CONTROLLER_AXIS_RIGHTY)
+        emu.update_joystick(JOYSTICK::RIGHT, JOYSTICK_AXIS::Y, ds_val);
+    else if (axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
+        emu.update_button(PAD_BUTTON::L2, trig_val);
+    else if (axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        emu.update_button(PAD_BUTTON::R2, trig_val);
+}
+
 void Application::handle_event(SDL_Event& event)
 {
     switch(event.type)
@@ -196,6 +254,34 @@ void Application::handle_event(SDL_Event& event)
 
     case (SDL_KEYUP):
         key_event(event.key.keysym.sym, false);
+        break;
+
+    case (SDL_CONTROLLERDEVICEADDED):
+        if (!pad && (pad = SDL_GameControllerOpen(event.cdevice.which)))
+        {
+            joy_id = event.cdevice.which;
+            fprintf(stderr, "Using gamepad #%d, \"%s\"\n as Dualshock #1.", joy_id, SDL_GameControllerName(pad));
+        }
+        break;
+
+    case (SDL_CONTROLLERDEVICEREMOVED):
+        if (pad && event.cdevice.which == joy_id)
+        {
+            pad = nullptr;
+            joy_id = -1;
+            fprintf(stderr, "Dualshock #1 removed.");
+        }
+        break;
+
+    case (SDL_CONTROLLERAXISMOTION):
+        if (event.caxis.which == joy_id)
+            joystick_event(event.caxis.axis, event.caxis.value);
+        break;
+
+    case (SDL_CONTROLLERBUTTONDOWN):
+    case (SDL_CONTROLLERBUTTONUP):
+        if (event.cbutton.which == joy_id)
+            button_event(event.cbutton.button, event.cbutton.state == SDL_PRESSED);
         break;
 
     default: break;

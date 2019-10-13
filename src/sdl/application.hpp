@@ -7,6 +7,7 @@
 #include <emulator.hpp>
 
 typedef union SDL_Event SDL_Event;
+typedef struct _SDL_GameController SDL_GameController;
 
 class Application
 {
@@ -17,12 +18,17 @@ private:
 
     bool running;
 
+    SDL_GameController* pad;
+    int32_t joy_id;
+
     bool init(Params& params);
     void free();
     bool frame();
     void handle_event(SDL_Event& event);
 
     void key_event(int32_t keycode, bool down);
+    void button_event(int button, bool down);
+    void joystick_event(int axis, int16_t value);
 
     enum class RomType { NONE, ELF, ISO, CSO };
     bool open_rom(const char* path);
