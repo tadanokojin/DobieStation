@@ -58,6 +58,16 @@ void Gamepad::release_button(PAD_BUTTON button)
     button_pressure[(int)button] = 0;
 }
 
+void Gamepad::update_button(PAD_BUTTON button, uint8_t val)
+{
+    if (val)
+        buttons &= ~(1 << (int)button);
+    else
+        buttons |= 1 << (int)button;
+
+    button_pressure[(int)button] = val;
+}
+
 void Gamepad::update_joystick(JOYSTICK joystick, JOYSTICK_AXIS axis, uint8_t val)
 {
     joysticks[(int)joystick][(int)axis] = val;

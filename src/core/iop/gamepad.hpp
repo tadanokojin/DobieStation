@@ -82,6 +82,7 @@ class Gamepad
         void reset();
         void press_button(PAD_BUTTON button);
         void release_button(PAD_BUTTON button);
+        void update_button(PAD_BUTTON button, uint8_t val);
         void update_joystick(JOYSTICK joystick, JOYSTICK_AXIS axis, uint8_t val);
 
         uint8_t start_transfer(uint8_t value);

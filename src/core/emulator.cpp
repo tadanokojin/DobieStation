@@ -245,6 +245,11 @@ void Emulator::release_button(PAD_BUTTON button)
     pad.release_button(button);
 }
 
+void Emulator::update_button(PAD_BUTTON button, uint8_t val)
+{
+    pad.update_button(button, val);
+}
+
 void Emulator::update_joystick(JOYSTICK joystick, JOYSTICK_AXIS axis, uint8_t val)
 {
     pad.update_joystick(joystick, axis, val);
