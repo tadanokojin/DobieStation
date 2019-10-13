@@ -6,12 +6,14 @@
 #include "window.hpp"
 #include <emulator.hpp>
 
+typedef union SDL_Event SDL_Event;
+
 class Application
 {
 private:
-    Window window;
+    Window     window;
     BiosReader bios;
-    Emulator emu;
+    Emulator   emu;
 
     bool running;
 

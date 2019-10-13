@@ -139,10 +139,13 @@ void Application::handle_event(SDL_Event& event)
     {
     case (SDL_QUIT):
         running = false;
-        return;
+        break;
 
-    default:
-        return;
+    case (SDL_WINDOWEVENT):
+        window.handle_event(event.window);
+        break;
+
+    default: break;
     }
 }
 
