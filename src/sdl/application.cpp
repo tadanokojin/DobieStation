@@ -133,6 +133,51 @@ bool Application::frame()
     return true;
 }
 
+void Application::key_event(int32_t keycode, bool down)
+{
+    auto button = PAD_BUTTON::NONE;
+    auto axis   = JOYSTICK_AXIS::NONE;
+    uint8_t axis_dir = 0;
+
+    switch (keycode)
+    {
+    case (SDLK_a):      button = PAD_BUTTON::TRIANGLE; break;
+    case (SDLK_s):      button = PAD_BUTTON::SQUARE;   break;
+    case (SDLK_z):      button = PAD_BUTTON::CIRCLE;   break;
+    case (SDLK_x):      button = PAD_BUTTON::CROSS;    break;
+    case (SDLK_RETURN): button = PAD_BUTTON::START;    break;
+    case (SDLK_LSHIFT): button = PAD_BUTTON::SELECT;   break;
+    case (SDLK_q):      button = PAD_BUTTON::L1;       break;
+    case (SDLK_w):      button = PAD_BUTTON::R1;       break;
+    case (SDLK_UP):     button = PAD_BUTTON::UP;       break;
+    case (SDLK_DOWN):   button = PAD_BUTTON::DOWN;     break;
+    case (SDLK_LEFT):   button = PAD_BUTTON::LEFT;     break;
+    case (SDLK_RIGHT):  button = PAD_BUTTON::RIGHT;    break;
+
+    case (SDLK_i): axis = JOYSTICK_AXIS::Y; axis_dir = 0x00; break;
+    case (SDLK_k): axis = JOYSTICK_AXIS::Y; axis_dir = 0xFF; break;
+    case (SDLK_j): axis = JOYSTICK_AXIS::X; axis_dir = 0x00; break;
+    case (SDLK_l): axis = JOYSTICK_AXIS::X; axis_dir = 0xFF; break;
+
+    default: break;
+    }
+
+    if (button != PAD_BUTTON::NONE)
+    {
+        if (down)
+            emu.press_button(button);
+        else
+            emu.release_button(button);
+    }
+    else if (axis != JOYSTICK_AXIS::NONE)
+    {
+        if (down)
+            emu.update_joystick(JOYSTICK::LEFT, axis, axis_dir);
+        else
+            emu.update_joystick(JOYSTICK::LEFT, axis, 0x7F);
+    }
+}
+
 void Application::handle_event(SDL_Event& event)
 {
     switch(event.type)
@@ -143,6 +188,14 @@ void Application::handle_event(SDL_Event& event)
 
     case (SDL_WINDOWEVENT):
         window.handle_event(event.window);
+        break;
+
+    case (SDL_KEYDOWN):
+        key_event(event.key.keysym.sym, true);
+        break;
+
+    case (SDL_KEYUP):
+        key_event(event.key.keysym.sym, false);
         break;
 
     default: break;

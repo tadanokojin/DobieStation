@@ -20,7 +20,9 @@ enum class PAD_BUTTON
     TRIANGLE,
     CIRCLE,
     CROSS,
-    SQUARE
+    SQUARE,
+
+    NONE = -1
 };
 
 enum class JOYSTICK
@@ -32,7 +34,9 @@ enum class JOYSTICK
 enum class JOYSTICK_AXIS
 {
     X,
-    Y
+    Y,
+
+    NONE = -1
 };
 
 enum PAD_MODE

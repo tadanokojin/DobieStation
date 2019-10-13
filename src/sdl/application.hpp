@@ -22,6 +22,8 @@ private:
     bool frame();
     void handle_event(SDL_Event& event);
 
+    void key_event(int32_t keycode, bool down);
+
     enum class RomType { NONE, ELF, ISO, CSO };
     bool open_rom(const char* path);
 
