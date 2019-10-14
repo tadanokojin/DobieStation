@@ -9,12 +9,14 @@ set(SOURCES
 	bios.cpp
 	window.cpp
 	application.cpp
+	params.cpp
     main.cpp)
 
 set(HEADERS
 	bios.hpp
 	window.hpp
-	application.hpp params.hpp)
+	params.hpp
+	application.hpp)
 
 add_executable(${TARGET} ${SOURCES} ${HEADERS})
 target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})

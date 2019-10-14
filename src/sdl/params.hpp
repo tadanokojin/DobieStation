@@ -9,4 +9,7 @@ struct Params
     bool interpreter = false;
 };
 
+void show_usage(const char* arg0);
+bool parse_arguments(int argc, char** argv, Params& params);
+
 #endif//__PARAMS_HPP__
