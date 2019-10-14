@@ -179,19 +179,9 @@ void Application::key_event(int32_t keycode, bool down)
     }
 
     if (button != PAD_BUTTON::NONE)
-    {
-        if (down)
-            emu.press_button(button);
-        else
-            emu.release_button(button);
-    }
+        emu.update_button(button, down ? 0xFF : 0x00);
     else if (axis != JOYSTICK_AXIS::NONE)
-    {
-        if (down)
-            emu.update_joystick(JOYSTICK::LEFT, axis, axis_dir);
-        else
-            emu.update_joystick(JOYSTICK::LEFT, axis, 0x7F);
-    }
+        emu.update_joystick(JOYSTICK::LEFT, axis, down ? axis_dir : 0x7F);
 }
 
 void Application::button_event(int button, bool down)
@@ -222,12 +212,7 @@ void Application::button_event(int button, bool down)
     }
 
     if (ds_button != PAD_BUTTON::NONE)
-    {
-        if (down)
-            emu.press_button(ds_button);
-        else
-            emu.release_button(ds_button);
-    }
+        emu.update_button(ds_button, down ? 0xFF : 0x00);
 }
 
 void Application::joystick_event(int axis, int16_t value)
