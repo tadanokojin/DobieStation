@@ -69,6 +69,13 @@ void Window::handle_event(SDL_WindowEvent& event)
     }
 }
 
+
+void Window::set_title(const char* title)
+{
+    SDL_SetWindowTitle(window, title);
+}
+
+
 void Window::resize_display(int inner_w, int inner_h, int disp_w, int disp_h)
 {
     if (disp_w && disp_h)

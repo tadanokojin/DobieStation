@@ -3,7 +3,7 @@
 
 
 Application::Application() :
-    running(false),
+    running(false), fps_counter(0),
     pad(nullptr), joy_id(-1)
 {
 
@@ -84,6 +84,7 @@ bool Application::init(Params& params)
     if (!window.open())
         return false;
 
+    next_tick = high_resolution_clock::now() + sec;
     return running = true;
 }
 
@@ -96,6 +97,17 @@ void Application::free()
 
 bool Application::frame()
 {
+    // fps counter
+    if (high_resolution_clock::now() >= next_tick)
+    {
+        char window_title[256];
+        snprintf(window_title, sizeof(window_title), "%li FPS", fps_counter);
+        window.set_title(window_title);
+
+        next_tick += sec;
+        fps_counter = 0;
+    }
+
     // handle events
     SDL_Event event;
     while (SDL_PollEvent(&event) > 0)
@@ -131,6 +143,7 @@ bool Application::frame()
     window.resize_display(iw, ih, w, h);
     window.update_texture(fb);
     window.present();
+    ++fps_counter;
 
     return true;
 }

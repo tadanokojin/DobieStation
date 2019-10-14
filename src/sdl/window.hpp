@@ -36,6 +36,8 @@ public:
     bool open();
     void close();
 
+    void set_title(const char* title);
+
     void resize_display(int inner_w, int inner_h, int disp_w, int disp_h);
     void update_texture(void* pixels);
     void present();
