@@ -15,6 +15,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core.vcxproj", "{35
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libdeflate", "libdeflate\libdeflate.vcxproj", "{A77564F4-56BB-3D08-8126-3FD5FC44F217}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "..\ext\imgui\imgui.vcxproj", "{20FB255D-3EE3-4254-A610-BD16E9AA41AA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Externals", "Externals", "{042518D3-D34B-426E-A62C-12D0E1E4FA1A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -47,9 +51,20 @@ Global
 		{A77564F4-56BB-3D08-8126-3FD5FC44F217}.Release Optimized|x64.Build.0 = Release Optimized|x64
 		{A77564F4-56BB-3D08-8126-3FD5FC44F217}.Release|x64.ActiveCfg = Release|x64
 		{A77564F4-56BB-3D08-8126-3FD5FC44F217}.Release|x64.Build.0 = Release|x64
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA}.Debug|x64.ActiveCfg = Debug|x64
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA}.Debug|x64.Build.0 = Debug|x64
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA}.Devel|x64.ActiveCfg = Devel|x64
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA}.Devel|x64.Build.0 = Devel|x64
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA}.Release Optimized|x64.ActiveCfg = Release Optimized|x64
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA}.Release Optimized|x64.Build.0 = Release Optimized|x64
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA}.Release|x64.ActiveCfg = Release|x64
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{20FB255D-3EE3-4254-A610-BD16E9AA41AA} = {042518D3-D34B-426E-A62C-12D0E1E4FA1A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {332CD22F-A5D2-4C61-B77E-9A91CF2F57A9}
