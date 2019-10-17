@@ -71,9 +71,17 @@
     <TargetName>DobieStation$(Postfix)</TargetName>
   </PropertyGroup>
 
+  <!-- default compile -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(UIDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
   <!-- default link -->
   <ItemDefinitionGroup>
     <Link>
+      <AdditionalDependencies>$(BinDir)\Core$(Postfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)\DobieStation$(Postfix).exe</OutputFile>
       <SubSystem>Console</SubSystem>
     </Link>

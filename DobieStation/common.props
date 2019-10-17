@@ -6,6 +6,7 @@
     <SrcDir>$(RootDir)src\</SrcDir>
     <UIDir>$(SrcDir)qt\</UIDir>
     <CoreDir>$(SrcDir)core\</CoreDir>
+    <VideoDir>$(SrcDir)video\</VideoDir>
     <ExtDir>$(RootDir)ext\</ExtDir>
     <BuildDir>$(RootDir)build\</BuildDir>
     <BinDir>$(BuildDir)bin\</BinDir>
@@ -59,7 +60,6 @@
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <IgnoreImportLibrary>true</IgnoreImportLibrary>
       <DataExecutionPrevention>true</DataExecutionPrevention>
-      <AdditionalDependencies>$(BinDir)\Core$(Postfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalDependencies>$(BinDir)\libdeflate$(Postfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
