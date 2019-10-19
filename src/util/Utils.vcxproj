@@ -66,11 +66,11 @@
   </ItemDefinitionGroup>
   <!-- cpp files -->
   <ItemGroup>
-
+    <ClInclude Include="scoped_lib.hpp" />
   </ItemGroup>
   <!-- headers -->
   <ItemGroup>
-
+    <ClCompile Include="scoped_lib.cpp" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
