@@ -67,6 +67,7 @@
   <!-- cpp files -->
   <ItemGroup>
     <ClInclude Include="scoped_lib.hpp" />
+    <ClInclude Include="wsi.hpp" />
   </ItemGroup>
   <!-- headers -->
   <ItemGroup>

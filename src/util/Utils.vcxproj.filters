@@ -14,6 +14,9 @@
     <ClInclude Include="scoped_lib.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="wsi.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scoped_lib.cpp">
