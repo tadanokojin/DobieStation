@@ -29,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Externals", "Externals", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glslang", "..\ext\glslang\glslang.vcxproj", "{D4AC0FE1-F1BE-4025-AE09-3D44FAEA95CA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Utils", "..\src\util\Utils.vcxproj", "{DF098D13-9C3A-487D-A34F-A98007F7000A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -85,6 +87,14 @@ Global
 		{D4AC0FE1-F1BE-4025-AE09-3D44FAEA95CA}.Release Optimized|x64.Build.0 = Release Optimized|x64
 		{D4AC0FE1-F1BE-4025-AE09-3D44FAEA95CA}.Release|x64.ActiveCfg = Release|x64
 		{D4AC0FE1-F1BE-4025-AE09-3D44FAEA95CA}.Release|x64.Build.0 = Release|x64
+		{DF098D13-9C3A-487D-A34F-A98007F7000A}.Debug|x64.ActiveCfg = Debug|x64
+		{DF098D13-9C3A-487D-A34F-A98007F7000A}.Debug|x64.Build.0 = Debug|x64
+		{DF098D13-9C3A-487D-A34F-A98007F7000A}.Devel|x64.ActiveCfg = Devel|x64
+		{DF098D13-9C3A-487D-A34F-A98007F7000A}.Devel|x64.Build.0 = Devel|x64
+		{DF098D13-9C3A-487D-A34F-A98007F7000A}.Release Optimized|x64.ActiveCfg = Release Optimized|x64
+		{DF098D13-9C3A-487D-A34F-A98007F7000A}.Release Optimized|x64.Build.0 = Release Optimized|x64
+		{DF098D13-9C3A-487D-A34F-A98007F7000A}.Release|x64.ActiveCfg = Release|x64
+		{DF098D13-9C3A-487D-A34F-A98007F7000A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
