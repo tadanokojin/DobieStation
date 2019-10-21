@@ -157,8 +157,6 @@ GraphicsSynthesizerThread::GraphicsSynthesizerThread()
 
     jit_draw_pixel_heap.flush_all_blocks();
     jit_tex_lookup_heap.flush_all_blocks();
-
-    thread = std::thread(&GraphicsSynthesizerThread::event_loop, this);
 }
 
 GraphicsSynthesizerThread::~GraphicsSynthesizerThread()
@@ -258,8 +256,6 @@ void GraphicsSynthesizerThread::exit()
 void GraphicsSynthesizerThread::event_loop()
 {
     printf("[GS_t] Starting GS Thread\n");
-
-    reset();
 
     bool gsdump_recording = false;
     ofstream gsdump_file;
@@ -464,6 +460,8 @@ void GraphicsSynthesizerThread::event_loop()
 
 void GraphicsSynthesizerThread::reset()
 {
+    exit();
+
     if (!local_mem)
         local_mem = new uint8_t[1024 * 1024 * 4];
 
@@ -490,6 +488,7 @@ void GraphicsSynthesizerThread::reset()
     jit_draw_pixel_heap.flush_all_blocks();
 
     reset_fifos();
+    thread = std::thread(&GraphicsSynthesizerThread::event_loop, this);
 }
 
 void GraphicsSynthesizerThread::memdump(uint32_t* target, uint16_t& width, uint16_t& height)

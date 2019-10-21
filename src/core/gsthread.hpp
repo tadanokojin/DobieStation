@@ -501,7 +501,6 @@ class GraphicsSynthesizerThread
 
         int32_t orient2D(const Vertex &v1, const Vertex &v2, const Vertex &v3);
 
-        void reset();
         void memdump(uint32_t* target, uint16_t& width, uint16_t& height);
 
         uint32_t get_CRT_color(DISPFB& dispfb, uint32_t x, uint32_t y);
@@ -528,6 +527,7 @@ class GraphicsSynthesizerThread
         void send_message(GSMessage message);
         void wake_thread();
         void wait_for_return(GSReturn type, GSReturnMessage &data);
+        void reset();
         void reset_fifos();
         void exit();
 };
