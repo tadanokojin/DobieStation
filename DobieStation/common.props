@@ -62,6 +62,7 @@
       <IgnoreImportLibrary>true</IgnoreImportLibrary>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <AdditionalDependencies>$(BinDir)\libdeflate$(Postfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(BinDir)\Utils$(Postfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
