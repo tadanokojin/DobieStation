@@ -7,8 +7,10 @@
 #include <QThread>
 #include <string>
 
-#include "../core/emulator.hpp"
-#include "../core/errors.hpp"
+#include "core/emulator.hpp"
+#include "core/errors.hpp"
+
+#include "util/wsi.hpp"
 
 #define GSDUMP_BUFFERED_MESSAGES 100000
 
@@ -29,6 +31,7 @@ class EmuThread : public QThread
         uint32_t pause_status;
         QMutex emu_mutex, load_mutex, pause_mutex;
         Emulator e;
+        Util::WSI window_info;
 
         std::chrono::system_clock::time_point old_frametime;
         std::ifstream gsdump;
@@ -42,7 +45,7 @@ class EmuThread : public QThread
         EmuThread();
         ~EmuThread();
 
-        void reset();
+        void reset(Util::WSI wsi);
 
         void set_skip_BIOS_hack(SKIP_HACK skip);
         void set_ee_mode(CPU_MODE mode);

@@ -123,8 +123,10 @@ void Emulator::run()
     fesetround(originalRounding);
 }
 
-void Emulator::reset()
+void Emulator::reset(Util::WSI wsi)
 {
+    window_info = wsi;
+
     save_requested = false;
     load_requested = false;
     gsdump_requested = false;
@@ -148,7 +150,7 @@ void Emulator::reset()
     cpu.init_tlb();
     dmac.reset(RDRAM, (uint8_t*)&scratchpad);
     fpu.reset();
-    gs.reset();
+    gs.reset(wsi);
     gif.reset();
     iop.reset();
     iop_dma.reset(IOP_RAM);

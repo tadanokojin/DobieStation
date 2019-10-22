@@ -12,6 +12,8 @@
 
 #include "jitcommon/emitter64.hpp"
 
+#include "util/wsi.hpp"
+
 template<int XS, int YS, int ZS>
 struct SwizzleTable
 {
@@ -527,7 +529,7 @@ class GraphicsSynthesizerThread
         void send_message(GSMessage message);
         void wake_thread();
         void wait_for_return(GSReturn type, GSReturnMessage &data);
-        void reset();
+        virtual void reset(Util::WSI wsi);
         void reset_fifos();
         void exit();
 };

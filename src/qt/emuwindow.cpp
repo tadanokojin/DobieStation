@@ -9,6 +9,9 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QTableWidget>
+#include <QWindow>
+
+#include "util/wsi.hpp"
 
 #include "emuwindow.hpp"
 #include "settingswindow.hpp"
@@ -62,7 +65,10 @@ EmuWindow::EmuWindow(QWidget *parent) : QMainWindow(parent)
     connect(&emu_thread, SIGNAL(emu_non_fatal_error(QString)), this, SLOT(emu_non_fatal_error(QString)));
     emu_thread.pause(PAUSE_EVENT::GAME_NOT_LOADED);
 
-    emu_thread.reset();
+    Util::WSI wsi = {};
+    wsi.surface = render_widget->handle();
+
+    emu_thread.reset(wsi);
     emu_thread.start();
 
     //Initialize window

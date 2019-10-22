@@ -20,9 +20,11 @@ EmuThread::~EmuThread()
     delete[] gsdump_read_buffer;
 }
 
-void EmuThread::reset()
+void EmuThread::reset(Util::WSI wsi)
 {
-    e.reset();
+    window_info = wsi;
+
+    e.reset(wsi);
     buffered_gs_messages = 0;
     current_gs_message = 0;
 }
@@ -58,7 +60,7 @@ void EmuThread::load_BIOS(const uint8_t *BIOS)
 void EmuThread::load_ELF(const uint8_t *ELF, uint64_t ELF_size)
 {
     load_mutex.lock();
-    e.reset();
+    e.reset(window_info);
     e.load_ELF(ELF, ELF_size);
     load_mutex.unlock();
 }
@@ -66,7 +68,7 @@ void EmuThread::load_ELF(const uint8_t *ELF, uint64_t ELF_size)
 void EmuThread::load_CDVD(const char* name, CDVD_CONTAINER type)
 {
     load_mutex.lock();
-    e.reset();
+    e.reset(window_info);
     e.load_CDVD(name, type);
     load_mutex.unlock();
 }
@@ -97,7 +99,7 @@ bool EmuThread::gsdump_read(const char *name)
     gsdump.open(name,ios::binary);
     if (!gsdump.is_open())
         return 1;
-    e.get_gs().reset();
+    e.get_gs().reset(window_info);
     e.get_gs().load_state(gsdump);
     load_mutex.unlock();
     printf("loaded gsdump\n");

@@ -63,7 +63,7 @@ void Emulator::load_state(const char *file_name)
         return;
     }
 
-    reset();
+    reset(window_info);
 
     //Emulator info
     state.read((char*)&VBLANK_sent, sizeof(VBLANK_sent));

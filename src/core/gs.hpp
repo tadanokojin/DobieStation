@@ -27,7 +27,7 @@ class GraphicsSynthesizer
         GraphicsSynthesizer(INTC* intc);
         ~GraphicsSynthesizer();
 
-        void reset();
+        void reset(Util::WSI wsi);
         void start_frame();
         bool is_frame_complete() const;
         uint32_t* get_framebuffer();

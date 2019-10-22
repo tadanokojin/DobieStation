@@ -26,6 +26,8 @@
 #include "sif.hpp"
 #include "scheduler.hpp"
 
+#include "util/wsi.hpp"
+
 enum SKIP_HACK
 {
     NONE,
@@ -68,6 +70,8 @@ class Emulator
         VectorInterface vif0, vif1;
         VectorUnit vu0, vu1;
 
+        Util::WSI window_info;
+
         bool VBLANK_sent;
         bool cop2_interlock, vu_interlock;
 
@@ -107,7 +111,7 @@ class Emulator
         Emulator();
         ~Emulator();
         void run();
-        void reset();
+        void reset(Util::WSI wsi);
         void print_state();
         void press_button(PAD_BUTTON button);
         void release_button(PAD_BUTTON button);

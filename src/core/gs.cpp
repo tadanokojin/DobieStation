@@ -27,9 +27,9 @@ GraphicsSynthesizer::~GraphicsSynthesizer()
     delete[] output_buffer2;
 }
 
-void GraphicsSynthesizer::reset()
+void GraphicsSynthesizer::reset(Util::WSI wsi)
 {
-    gs_thread.reset();
+    gs_thread.reset(wsi);
 
     if (!output_buffer1)
         output_buffer1 = new uint32_t[1920 * 1280];

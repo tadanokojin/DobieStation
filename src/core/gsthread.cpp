@@ -458,7 +458,7 @@ void GraphicsSynthesizerThread::event_loop()
     }
 }
 
-void GraphicsSynthesizerThread::reset()
+void GraphicsSynthesizerThread::reset(Util::WSI wsi)
 {
     exit();
 
