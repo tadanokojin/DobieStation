@@ -2,6 +2,7 @@
 #include <QImageWriter>
 #include <QDateTime>
 #include <QDebug>
+#include <QWindow>
 
 #include "renderwidget.hpp"
 #include "settings.hpp"
@@ -84,4 +85,11 @@ void RenderWidget::screenshot()
     }
 
     writer.write(final_image);
+}
+
+void* RenderWidget::handle()
+{
+    return reinterpret_cast<void*>(
+        window()->winId()
+    );
 }

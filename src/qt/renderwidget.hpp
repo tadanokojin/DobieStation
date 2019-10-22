@@ -19,6 +19,7 @@ class RenderWidget : public QWidget
         void paintEvent(QPaintEvent* event) override;
 
         bool get_respect_aspect_ratio() const;
+        void* handle();
     public slots:
         void draw_frame(uint32_t* buffer, int inner_w, int inner_h, int final_w, int final_h);
         void toggle_aspect_ratio();
