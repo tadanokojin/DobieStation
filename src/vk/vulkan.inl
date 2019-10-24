@@ -69,6 +69,7 @@ VK_DEVICE_FUNC(vkDestroyFence)
 VK_DEVICE_FUNC(vkWaitForFences)
 VK_DEVICE_FUNC(vkResetFences)
 VK_DEVICE_FUNC(vkResetCommandBuffer)
+VK_DEVICE_FUNC(vkDeviceWaitIdle)
 
 #undef VK_GLOBAL_FUNC
 #undef VK_MODULE_FUNC
