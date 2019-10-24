@@ -94,12 +94,14 @@
   <!-- cpp files -->
   <ItemGroup>
     <ClInclude Include="loader.hpp" />
+    <ClInclude Include="device.hpp" />
     <ClInclude Include="vulkan.inl" />
   </ItemGroup>
 
   <!-- headers -->
   <ItemGroup>
     <ClCompile Include="loader.cpp" />
+    <ClCompile Include="device.cpp" />
   </ItemGroup>
 
   <ItemGroup>
