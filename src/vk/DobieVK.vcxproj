@@ -93,6 +93,7 @@
 
   <!-- cpp files -->
   <ItemGroup>
+    <ClInclude Include="command_buffer.hpp" />
     <ClInclude Include="loader.hpp" />
     <ClInclude Include="context.hpp" />
     <ClInclude Include="device.hpp" />
@@ -102,6 +103,7 @@
 
   <!-- headers -->
   <ItemGroup>
+    <ClCompile Include="command_buffer.cpp" />
     <ClCompile Include="loader.cpp" />
     <ClCompile Include="context.cpp" />
     <ClCompile Include="device.cpp" />
