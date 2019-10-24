@@ -93,12 +93,13 @@
 
   <!-- cpp files -->
   <ItemGroup>
-
+    <ClInclude Include="loader.hpp" />
+    <ClInclude Include="vulkan.inl" />
   </ItemGroup>
 
   <!-- headers -->
   <ItemGroup>
-
+    <ClCompile Include="loader.cpp" />
   </ItemGroup>
 
   <ItemGroup>
