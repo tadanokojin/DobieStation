@@ -19,7 +19,7 @@ bool Dynalib::open(const char* filename)
 #ifdef WIN32
     handle = LoadLibraryA(filename);
 #else // macOS/Unix
-    handle = dlopen(filename);
+    handle = dlopen(filename, RTLD_NOW);
 #endif
     return handle != nullptr;
 }
