@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include "vlc_table.hpp"
-#include <core/errors.hpp>
+#include "core/errors.hpp"
 
 VLC_Table::VLC_Table(VLC_Entry* table, int table_size, int max_bits, unsigned int* index_table) :
     table(table), table_size(table_size), max_bits(max_bits), index_table(index_table)

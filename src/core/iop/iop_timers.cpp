@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <cstdio>
 #include "iop_timers.hpp"
-#include <core/emulator.hpp>
-#include <core/errors.hpp>
+#include "core/emulator.hpp"
+#include "core/errors.hpp"
 
 IOPTiming::IOPTiming(Emulator* e) : e(e)
 {

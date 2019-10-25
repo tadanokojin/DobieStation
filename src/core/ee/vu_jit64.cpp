@@ -3,9 +3,9 @@
 
 #include "vu_jit64.hpp"
 #include "vu_interpreter.hpp"
-#include <core/gif.hpp>
+#include "core/gif.hpp"
 
-#include <core/errors.hpp>
+#include "core/errors.hpp"
 
 /**
  * Calling convention notes (needed for calling C++ functions within generated code)

@@ -1,7 +1,7 @@
 #include <cstring>
 #include "vu_jittrans.hpp"
 #include "vu_interpreter.hpp"
-#include <core/errors.hpp>
+#include "core/errors.hpp"
 
 uint32_t branch_offset(uint32_t instr, uint32_t PC)
 {

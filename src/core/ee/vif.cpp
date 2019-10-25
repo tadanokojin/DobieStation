@@ -4,8 +4,8 @@
 #include "vu_jit.hpp"
 #include "vif.hpp"
 
-#include <core/gif.hpp>
-#include <core/errors.hpp>
+#include "core/gif.hpp"
+#include "core/errors.hpp"
 
 #define printf(fmt, ...)(0)
 

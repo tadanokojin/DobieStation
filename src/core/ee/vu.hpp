@@ -5,7 +5,7 @@
 #include <fstream>
 #include <unordered_set>
 #include "emotion.hpp"
-#include <core/int128.hpp>
+#include "core/int128.hpp"
 
 #define XGKICK_INIT_DELAY 0
 

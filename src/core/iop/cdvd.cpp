@@ -4,8 +4,8 @@
 #include "cdvd.hpp"
 #include "iop_dma.hpp"
 
-#include <core/emulator.hpp>
-#include <core/errors.hpp>
+#include "core/emulator.hpp"
+#include "core/errors.hpp"
 
 using namespace std;
 

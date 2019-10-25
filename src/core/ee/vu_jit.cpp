@@ -3,10 +3,10 @@
 #include "vu.hpp"
 
 #include "vu_jittrans.hpp"
-#include <core/jitcommon/jitcache.hpp>
-#include <core/jitcommon/emitter64.hpp>
+#include "core/jitcommon/jitcache.hpp"
+#include "core/jitcommon/emitter64.hpp"
 
-#include <core/errors.hpp>
+#include "core/errors.hpp"
 
 namespace VU_JIT
 {

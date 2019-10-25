@@ -1,7 +1,7 @@
 #include <cstring>
 #include "ee_jittrans.hpp"
 #include "emotioninterpreter.hpp"
-#include <core/errors.hpp>
+#include "core/errors.hpp"
 
 uint32_t branch_offset_ee(uint32_t instr, uint32_t PC)
 {

@@ -3,8 +3,8 @@
 #include "memcard.hpp"
 #include "sio2.hpp"
 
-#include <core/emulator.hpp>
-#include <core/errors.hpp>
+#include "core/emulator.hpp"
+#include "core/errors.hpp"
 
 using namespace std;
 

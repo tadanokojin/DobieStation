@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "iop_cop0.hpp"
-#include <core/errors.hpp>
+#include "core/errors.hpp"
 
 IOP_Cop0::IOP_Cop0()
 {

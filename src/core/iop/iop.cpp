@@ -5,9 +5,9 @@
 #include "iop.hpp"
 #include "iop_interpreter.hpp"
 
-#include <core/emulator.hpp>
-#include <core/ee/emotiondisasm.hpp>
-#include <core/errors.hpp>
+#include "core/emulator.hpp"
+#include "core/ee/emotiondisasm.hpp"
+#include "core/errors.hpp"
 
 IOP::IOP(Emulator* e) : e(e)
 {

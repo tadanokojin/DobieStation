@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "iop_interpreter.hpp"
-#include <core/errors.hpp>
+#include "core/errors.hpp"
 
 void IOP_Interpreter::interpret(IOP &cpu, uint32_t instruction)
 {

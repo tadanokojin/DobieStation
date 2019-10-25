@@ -3,10 +3,10 @@
 #include "emotion.hpp"
 
 #include "ee_jittrans.hpp"
-#include <core/jitcommon/jitcache.hpp>
-#include <core/jitcommon/emitter64.hpp>
+#include "core/jitcommon/jitcache.hpp"
+#include "core/jitcommon/emitter64.hpp"
 
-#include <core/errors.hpp>
+#include "core/errors.hpp"
 
 namespace EE_JIT
 {
