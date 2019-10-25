@@ -34,5 +34,7 @@ set(HEADERS
 
 add_executable(${TARGET} ${SOURCES} ${HEADERS})
 set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "DobieStation") # Output as "DobieStation" instead of "DobieQt"
+
+target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
 target_link_libraries(${TARGET} Dobie::Core Dobie::VK Dobie::Utils Qt5::Core Qt5::Widgets)
