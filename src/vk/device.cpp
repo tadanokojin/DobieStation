@@ -58,7 +58,7 @@ void Device::reset(Vulkan::Gpu* gpu, Util::WSI wsi)
     VkXcbSurfaceCreateInfoKHR surface_info = {};
     surface_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
     surface_info.connection = reinterpret_cast<xcb_connection_t*>(wsi.connection);
-    surface_info.window = *reinterpret_cast<xcb_window_t*>(wsi.surface);
+    surface_info.window = *reinterpret_cast<display_handle_t>(wsi.surface);
 
     LOG_VIDEO("Creating Xcb surface");
     LOG_VIDEO("\t display: 0x%x", wsi.surface);

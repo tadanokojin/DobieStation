@@ -11,6 +11,8 @@ namespace Vulkan
 {
 #ifdef _WIN32
 using display_handle_t = HWND;
+#elif defined(__linux__)
+using display_handle_t = xcb_window_t*;
 #else
 using display_handle_t = void*;
 #endif

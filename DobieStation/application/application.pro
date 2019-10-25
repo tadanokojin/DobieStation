@@ -1,4 +1,4 @@
-QT += core gui multimedia
+QT += core gui multimedia gui-private
 greaterThan(QT_MAJOR_VERSION, 4) : QT += widgets
 
 TEMPLATE = app

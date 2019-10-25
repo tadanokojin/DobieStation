@@ -67,6 +67,9 @@ EmuWindow::EmuWindow(QWidget *parent) : QMainWindow(parent)
 
     Util::WSI wsi = {};
     wsi.surface = render_widget->handle();
+#ifdef __linux__
+    wsi.connection = render_widget->connection();
+#endif
 
     emu_thread.reset(wsi);
     emu_thread.start();
