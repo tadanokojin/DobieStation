@@ -46,7 +46,8 @@ find_package(Threads REQUIRED)
 # Modules
 add_subdirectory(src/core)
 add_subdirectory(src/qt)
-add_subdirectory(src)
+add_subdirectory(src/util)
+add_subdirectory(src/vk)
 
 
 if (MSVC)

@@ -32,6 +32,8 @@ void Context::reset()
     enabled_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #ifdef VK_USE_PLATFORM_WIN32_KHR
     enabled_extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+    enabled_extensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #else
 #error not implemented
 #endif

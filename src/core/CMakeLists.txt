@@ -155,8 +155,9 @@ endif()
 add_library(${TARGET} ${SOURCES} ${HEADERS})
 add_library(Dobie::Core ALIAS ${TARGET})
 
-target_link_libraries(${TARGET} Ext::libdeflate Threads::Threads)
+target_link_libraries(${TARGET} Ext::libdeflate Threads::Threads Dobie::Utils)
 target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
+target_include_directories(${TARGET} PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 if (WIN32)
     # Needed to avoid ruining global scope with Windows.h on win32

@@ -35,6 +35,8 @@ VK_INSTANCE_FUNC(vkDestroyDebugUtilsMessengerEXT)
 VK_INSTANCE_FUNC(vkDestroySurfaceKHR)
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 VK_INSTANCE_FUNC(vkCreateWin32SurfaceKHR)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+VK_INSTANCE_FUNC(vkCreateXcbSurfaceKHR)
 #endif
 
 VK_DEVICE_FUNC(vkDestroyDevice)

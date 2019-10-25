@@ -2,6 +2,7 @@
 #define VK_DEVICE_HPP
 #include <string>
 #include <vector>
+#include <limits>
 
 #include "loader.hpp"
 #include "util/wsi.hpp"

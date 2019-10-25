@@ -54,6 +54,15 @@ void Device::reset(Vulkan::Gpu* gpu, Util::WSI wsi)
     LOG_VIDEO("Creating Win32 surface");
     LOG_VIDEO("\t display: 0x%x", wsi.surface);
     CHECK_RESULT(vkCreateWin32SurfaceKHR(gpu->instance(), &surface_info, nullptr, &m_surface));
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+    VkXcbSurfaceCreateInfoKHR surface_info = {};
+    surface_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+    surface_info.connection = reinterpret_cast<xcb_connection_t*>(wsi.connection);
+    surface_info.window = *reinterpret_cast<xcb_window_t*>(wsi.surface);
+
+    LOG_VIDEO("Creating Xcb surface");
+    LOG_VIDEO("\t display: 0x%x", wsi.surface);
+    CHECK_RESULT(vkCreateXcbSurfaceKHR(gpu->instance(), &surface_info, nullptr, &m_surface));
 #else
 #error not implemented
 #endif
