@@ -2,7 +2,7 @@
 #include "emotion.hpp"
 #include "intc.hpp"
 
-#include "../emulator.hpp"
+#include <core/emulator.hpp>
 
 INTC::INTC(Emulator* e, EmotionEngine* cpu) : e(e), cpu(cpu)
 {

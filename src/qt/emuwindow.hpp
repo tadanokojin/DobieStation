@@ -7,8 +7,8 @@
 
 #include "emuthread.hpp"
 
-#include "../qt/settings.hpp"
-#include "../core/emulator.hpp"
+#include <qt/settings.hpp>
+#include <core/emulator.hpp>
 
 class SettingsWindow;
 class RenderWidget;

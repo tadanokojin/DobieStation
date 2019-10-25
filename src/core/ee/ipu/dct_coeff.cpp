@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "dct_coeff.hpp"
-#include "../../errors.hpp"
+#include <core/errors.hpp>
 
 DCT_Coeff::DCT_Coeff(VLC_Entry* table, int table_size, int max_bits, unsigned int* index_table) :
     VLC_Table(table, table_size, max_bits, index_table)

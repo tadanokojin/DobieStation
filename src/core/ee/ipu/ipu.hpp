@@ -5,7 +5,7 @@
 
 #define BLOCK_SIZE 0x180
 
-#include "../../int128.hpp"
+#include <core/int128.hpp>
 #include "chromtable.hpp"
 #include "codedblockpattern.hpp"
 #include "dct_coeff_table0.hpp"

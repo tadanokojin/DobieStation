@@ -2,8 +2,8 @@
 #include "bios_hle.hpp"
 #include "emotionasm.hpp"
 
-#include "../emulator.hpp"
-#include "../gs.hpp"
+#include <core/emulator.hpp>
+#include <core/gs.hpp>
 
 BIOS_HLE::BIOS_HLE(Emulator* e, GraphicsSynthesizer* gs) : e(e), gs(gs)
 {

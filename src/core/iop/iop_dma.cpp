@@ -4,8 +4,8 @@
 #include "sio2.hpp"
 #include "spu.hpp"
 
-#include "../emulator.hpp"
-#include "../sif.hpp"
+#include <core/emulator.hpp>
+#include <core/sif.hpp>
 
 IOP_DMA::IOP_DMA(Emulator* e, CDVD_Drive* cdvd, SubsystemInterface* sif, SIO2* sio2, class SPU* spu, class SPU* spu2) :
     e(e), cdvd(cdvd), sif(sif), sio2(sio2), spu(spu), spu2(spu2)

@@ -5,9 +5,9 @@
 #include "emotiondisasm.hpp"
 #include "emotioninterpreter.hpp"
 #include "vu.hpp"
-#include "../errors.hpp"
+#include <core/errors.hpp>
 
-#include "../emulator.hpp"
+#include <core/emulator.hpp>
 #include "ee_jit.hpp"
 
 //#define SKIPMPEG_ON

@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "emotioninterpreter.hpp"
-#include "../errors.hpp"
+#include <core/errors.hpp>
 
 void EmotionInterpreter::interpret(EmotionEngine &cpu, uint32_t instruction)
 {
