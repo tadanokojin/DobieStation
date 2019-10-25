@@ -26,8 +26,6 @@ target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(${TARGET} Dobie::Utils)
 target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
 
-if (${CMAKE_BUILD_TYPE} MATCHES "Debug" OR
-    ${CMAKE_BUILD_TYPE} MATCHES "RelWithDebInfo")
-
-    target_compile_definitions(${TARGET} PRIVATE VIDEO_DEBUG_LOG)
-endif()
+# Define 'VIDEO_DEBUG_LOG' in debug configurations
+target_compile_definitions(${TARGET}
+    PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:VIDEO_DEBUG_LOG>)
