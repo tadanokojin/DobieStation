@@ -32,7 +32,7 @@ bool load()
     vulkan_module.open("vulkan-1.dll");
     #endif
 
-    #ifdef VK_USE_PLATFORM_XLIB_KHR
+    #ifdef VK_USE_PLATFORM_XCB_KHR
     vulkan_module.open("libvulkan.so.1");
     #endif
 

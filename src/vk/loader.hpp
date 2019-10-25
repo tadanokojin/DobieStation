@@ -8,8 +8,8 @@
 #define VK_USE_PLATFORM_MACOS_MVK
 #endif
 
-#ifdef HAVE_X11
-#define VK_USE_PLATFORM_XLIB_KHR
+#ifdef __linux__
+#define VK_USE_PLATFORM_XCB_KHR
 #endif
 
 // We'll use our own function definitions
