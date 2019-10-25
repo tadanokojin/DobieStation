@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.1)
 project(DobieStation
     VERSION 0.1.0)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 if (${CMAKE_C_COMPILER_ID} STREQUAL "GNU" OR
     ${CMAKE_C_COMPILER_ID} STREQUAL "Clang" OR
     ${CMAKE_C_COMPILER_ID} STREQUAL "AppleClang")
@@ -46,7 +48,8 @@ find_package(Threads REQUIRED)
 # Modules
 add_subdirectory(src/core)
 add_subdirectory(src/qt)
-add_subdirectory(src)
+add_subdirectory(src/util)
+add_subdirectory(src/vk)
 
 
 if (MSVC)

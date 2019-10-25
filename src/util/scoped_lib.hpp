@@ -5,7 +5,7 @@
 #ifdef WIN32
 #include <Windows.h>
 #else
-#include <dlfnc.h>
+#include <dlfcn.h>
 #endif
 
 namespace Util
@@ -41,7 +41,7 @@ public:
 };
 
 // TODO: maybe allow moves?
-static_assert(!std::is_copy_constructible_v<Dynalib>, "Cannot copy a dynalib");
-static_assert(!std::is_copy_assignable_v<Dynalib>, "Cannot copy a dynalib");
+static_assert(!std::is_copy_constructible<Dynalib>::value, "Cannot copy a dynalib");
+static_assert(!std::is_copy_assignable<Dynalib>::value, "Cannot copy a dynalib");
 }
 #endif
