@@ -26,6 +26,11 @@ target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(${TARGET} Dobie::Utils)
 target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
 
+# Quick hack to use bundled Vulkan headers until a proper way to find them is ascertained
+if (NOT VULKAN_FOUND)
+    target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/ext/vulkan/include)
+endif()
+
 # Define 'VIDEO_DEBUG_LOG' in debug configurations
 target_compile_definitions(${TARGET}
     PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:VIDEO_DEBUG_LOG>)
