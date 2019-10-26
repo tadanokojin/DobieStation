@@ -1,7 +1,7 @@
 #ifndef VU_JIT64_HPP
 #define VU_JIT64_HPP
-#include "../jitcommon/emitter64.hpp"
-#include "../jitcommon/ir_block.hpp"
+#include "core/jitcommon/emitter64.hpp"
+#include "core/jitcommon/ir_block.hpp"
 #include "vu_jittrans.hpp"
 #include "vu.hpp"
 

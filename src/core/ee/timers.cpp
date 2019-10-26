@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include "intc.hpp"
 #include "timers.hpp"
-#include "../errors.hpp"
+#include "core/errors.hpp"
 
 EmotionTiming::EmotionTiming(INTC* intc) : intc(intc)
 {

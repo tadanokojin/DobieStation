@@ -8,7 +8,7 @@
 #include "intc.hpp"
 #include "vu.hpp"
 
-#include "../int128.hpp"
+#include "core/int128.hpp"
 
 class GraphicsInterface;
 class DMAC;

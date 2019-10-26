@@ -2,7 +2,7 @@
 #define EE_JITTRANS_HPP
 #include <cstdint>
 //#include <vector>
-#include "../jitcommon/ir_block.hpp"
+#include "core/jitcommon/ir_block.hpp"
 
 class EmotionEngine;
 class VectorUnit;

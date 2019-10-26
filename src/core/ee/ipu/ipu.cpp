@@ -3,9 +3,9 @@
 #include <cstdlib>
 #include <cstring>
 #include "ipu.hpp"
-#include "../dmac.hpp"
-#include "../intc.hpp"
-#include "../../errors.hpp"
+#include "core/ee/dmac.hpp"
+#include "core/ee/intc.hpp"
+#include "core/errors.hpp"
 
 #define printf(fmt, ...)(0)
 

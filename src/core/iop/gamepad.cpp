@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include "gamepad.hpp"
-#include "../errors.hpp"
+#include "core/errors.hpp"
 
 //Reply buffers taken from PCSX2's LilyPad
 

@@ -10,9 +10,9 @@
 #include "vu_jit.hpp"
 #include "vu_disasm.hpp"
 
-#include "../emulator.hpp"
-#include "../errors.hpp"
-#include "../gif.hpp"
+#include "core/emulator.hpp"
+#include "core/errors.hpp"
+#include "core/gif.hpp"
 
 #define _x(f) f&8
 #define _y(f) f&4

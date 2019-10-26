@@ -1,7 +1,7 @@
 #ifndef EE_JIT64_HPP
 #define EE_JIT64_HPP
-#include "../jitcommon/emitter64.hpp"
-#include "../jitcommon/ir_block.hpp"
+#include "core/jitcommon/emitter64.hpp"
+#include "core/jitcommon/ir_block.hpp"
 #include "ee_jittrans.hpp"
 #include "emotion.hpp"
 #include "vu.hpp"

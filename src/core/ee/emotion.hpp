@@ -5,7 +5,7 @@
 #include "cop0.hpp"
 #include "cop1.hpp"
 
-#include "../int128.hpp"
+#include "core/int128.hpp"
 
 class Emulator;
 class VectorUnit;

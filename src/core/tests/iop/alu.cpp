@@ -1,5 +1,5 @@
-#include "../../emulator.hpp"
-#include "../../iop/iop_interpreter.hpp"
+#include "core/emulator.hpp"
+#include "core/iop/iop_interpreter.hpp"
 #include <iomanip>
 
 using namespace std;

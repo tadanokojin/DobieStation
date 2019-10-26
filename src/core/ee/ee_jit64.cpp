@@ -4,9 +4,9 @@
 #include "ee_jit64.hpp"
 #include "emotioninterpreter.hpp"
 #include "vu.hpp"
-#include "../gif.hpp"
+#include "core/gif.hpp"
 
-#include "../errors.hpp"
+#include "core/errors.hpp"
 
 /**
  * Calling convention notes (needed for calling C++ functions within generated code)

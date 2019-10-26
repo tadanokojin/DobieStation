@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <queue>
 
-#include "../../int128.hpp"
+#include "core/int128.hpp"
 
 struct IPU_FIFO
 {

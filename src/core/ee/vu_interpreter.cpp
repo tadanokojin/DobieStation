@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "vu_interpreter.hpp"
-#include "../errors.hpp"
+#include "core/errors.hpp"
 
 #define printf(fmt, ...)(0)
 

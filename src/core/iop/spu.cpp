@@ -1,6 +1,6 @@
 #include <cstdio>
 #include "spu.hpp"
-#include "../emulator.hpp"
+#include "core/emulator.hpp"
 #include "iop_dma.hpp"
 
 /**
