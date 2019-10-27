@@ -90,6 +90,6 @@ void RenderWidget::screenshot()
 void* RenderWidget::handle()
 {
     return reinterpret_cast<void*>(
-        window()->winId()
+        windowHandle()->winId()
     );
 }
