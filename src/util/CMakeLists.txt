@@ -1,6 +1,6 @@
 set(TARGET Utils)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 include(DobieHelpers)
 
 
@@ -15,6 +15,5 @@ set(HEADERS
 add_library(${TARGET} ${SOURCES} ${HEADERS})
 add_library(Dobie::Utils ALIAS ${TARGET})
 
-target_include_directories(${TARGET} PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
-dobie_win32_lean_and_mean(${TARGET})
+target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
+dobie_cxx_compile_options(${TARGET})

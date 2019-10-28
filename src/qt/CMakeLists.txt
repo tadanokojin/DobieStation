@@ -1,6 +1,6 @@
 set(TARGET DobieQt)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -35,7 +35,11 @@ set(HEADERS
 add_executable(${TARGET} ${SOURCES} ${HEADERS})
 set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "DobieStation") # Output as "DobieStation" instead of "DobieQt"
 
-target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
-target_link_libraries(${TARGET} Dobie::Core Dobie::VK Dobie::Utils Qt5::Core Qt5::Widgets Qt5::Gui)
-target_include_directories(${TARGET} PRIVATE ${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+dobie_cxx_compile_options(${TARGET})
+target_include_directories(${TARGET} PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+target_link_libraries(${TARGET}
+    Dobie::Core Dobie::Utils
+    $<$<NOT:$<PLATFORM_ID:Darwin>>:Dobie::VK>
+    Qt5::Core Qt5::Widgets Qt5::Gui)
