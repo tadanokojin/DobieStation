@@ -18,7 +18,9 @@ find_package(Threads REQUIRED)
 add_subdirectory(src/core)
 add_subdirectory(src/qt)
 add_subdirectory(src/util)
-add_subdirectory(src/vk)
+if (NOT APPLE)
+    add_subdirectory(src/vk)
+endif()
 
 
 if (MSVC)

@@ -37,4 +37,7 @@ set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "DobieStation") # Output 
 
 target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 dobie_cxx_compile_options(${TARGET})
-target_link_libraries(${TARGET} Dobie::Core Dobie::VK Dobie::Utils Qt5::Core Qt5::Widgets)
+target_link_libraries(${TARGET}
+    Dobie::Core Dobie::Utils
+    $<$<NOT:$<PLATFORM_ID:Darwin>>:Dobie::VK>
+    Qt5::Core Qt5::Widgets)
