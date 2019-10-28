@@ -14,79 +14,75 @@
       <Extensions>cpp;c;cxx;moc;h;def;odl;idl;res;</Extensions>
     </Filter>
   </ItemGroup>
-
   <ItemGroup>
-    <ClCompile Include="$(UIDir)bios.cpp">
+    <ClCompile Include="bios.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="$(UIDir)gamelistwidget.cpp">
+    <ClCompile Include="gamelistwidget.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="$(UIDir)emuwindow.cpp">
+    <ClCompile Include="emuwindow.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="$(UIDir)emuthread.cpp">
+    <ClCompile Include="emuthread.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="$(UIDir)renderwidget.cpp">
+    <ClCompile Include="renderwidget.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="$(UIDir)settingswindow.cpp">
+    <ClCompile Include="settingswindow.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="$(UIDir)settings.cpp">
+    <ClCompile Include="settings.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="$(UIDir)main.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
-
   <ItemGroup>
-    <ClCompile Include="$(QtMocOutPrefix)settingswindow.cpp">
-      <Filter>Moc</Filter>
-    </ClCompile>
-    <ClCompile Include="$(QtMocOutPrefix)settings.cpp">
-      <Filter>Moc</Filter>
-    </ClCompile>
-    <ClCompile Include="$(QtMocOutPrefix)renderwidget.cpp">
-      <Filter>Moc</Filter>
-    </ClCompile>
-    <ClCompile Include="$(QtMocOutPrefix)gamelistwidget.cpp">
-      <Filter>Moc</Filter>
-    </ClCompile>
-    <ClCompile Include="$(QtMocOutPrefix)emuwindow.cpp">
-      <Filter>Moc</Filter>
-    </ClCompile>
-    <ClCompile Include="$(QtMocOutPrefix)emuthread.cpp">
-      <Filter>Moc</Filter>
-    </ClCompile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ClInclude Include="$(UIDir)bios.hpp">
+    <ClInclude Include="bios.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
-
   <ItemGroup>
-    <QtMoc Include=".$(UIDir)renderwidget.hpp">
+    <QtMoc Include="renderwidget.hpp">
       <Filter>Headers</Filter>
     </QtMoc>
-    <QtMoc Include="$(UIDir)settingswindow.hpp">
+    <QtMoc Include="settingswindow.hpp">
       <Filter>Headers</Filter>
     </QtMoc>
-    <QtMoc Include="$(UIDir)emuthread.hpp">
+    <QtMoc Include="emuthread.hpp">
       <Filter>Headers</Filter>
     </QtMoc>
-    <QtMoc Include="$(UIDir)emuwindow.hpp">
+    <QtMoc Include="emuwindow.hpp">
       <Filter>Headers</Filter>
     </QtMoc>
-    <QtMoc Include="$(UIDir)settings.hpp">
+    <QtMoc Include="settings.hpp">
       <Filter>Headers</Filter>
     </QtMoc>
-    <QtMoc Include="$(UIDir)gamelistwidget.hpp">
+    <QtMoc Include="gamelistwidget.hpp">
       <Filter>Headers</Filter>
     </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(QtToolOutDir)moc_emuthread.cpp">
+      <Filter>Moc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(QtToolOutDir)moc_emuwindow.cpp">
+      <Filter>Moc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(QtToolOutDir)moc_gamelistwidget.cpp">
+      <Filter>Moc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(QtToolOutDir)moc_renderwidget.cpp">
+      <Filter>Moc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(QtToolOutDir)moc_settings.cpp">
+      <Filter>Moc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(QtToolOutDir)moc_settingswindow.cpp">
+      <Filter>Moc</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
