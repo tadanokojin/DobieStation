@@ -17,3 +17,5 @@ Makefile*
 *.iso
 *.cso
 *.snp
+*_log.txt
+*.log
