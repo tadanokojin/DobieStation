@@ -10,7 +10,7 @@ if(CMAKE_VERSION VERSION_LESS "3.7.0")
     set(CMAKE_INCLUDE_CURRENT_DIR ON)
 endif()
 
-find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Core Widgets Gui REQUIRED)
 
 
 set(SOURCES
@@ -37,4 +37,5 @@ set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "DobieStation") # Output 
 
 target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
-target_link_libraries(${TARGET} Dobie::Core Dobie::VK Dobie::Utils Qt5::Core Qt5::Widgets)
+target_link_libraries(${TARGET} Dobie::Core Dobie::VK Dobie::Utils Qt5::Core Qt5::Widgets Qt5::Gui)
+target_include_directories(${TARGET} PRIVATE ${Qt5Gui_PRIVATE_INCLUDE_DIRS})

@@ -11,9 +11,10 @@ RenderWidget::RenderWidget(QWidget* parent)
     : QWidget(parent)
 {
     QPalette palette;
-    palette.setColor(QPalette::Background, Qt::black);
+    palette.setColor(QPalette::Window, Qt::black);
     setPalette(palette);
     setAutoFillBackground(true);
+    setAttribute(Qt::WA_NativeWindow);
 }
 
 void RenderWidget::draw_frame(uint32_t* buffer, int inner_w, int inner_h, int final_w, int final_h)
@@ -93,3 +94,13 @@ void* RenderWidget::handle()
         windowHandle()->winId()
     );
 }
+
+#ifdef __linux__
+xcb_connection_t* RenderWidget::connection()
+{
+    QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
+    return reinterpret_cast<xcb_connection_t*>(
+        pni->nativeResourceForWindow("display", windowHandle())
+    );
+}
+#endif
