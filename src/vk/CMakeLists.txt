@@ -1,6 +1,6 @@
 set(TARGET DobieVK)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 include(DobieHelpers)
 
 
