@@ -4,6 +4,7 @@ project(DobieStation
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 string(REPLACE "-O3" "-O2" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}") # fix Release build
+set(THREADS_PREFER_PTHREAD_FLAG ON) # -pthreads on GNU-like compilers
 
 
 # Externals

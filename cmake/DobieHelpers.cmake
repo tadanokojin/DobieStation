@@ -37,8 +37,6 @@ function(dobie_cxx_compile_options TARGET)
             set(DOBIE_FLAGS ${DOBIE_FLAGS} -Wno-unused-but-set-variable) # GNU only warning
         endif()
 
-        set(THREADS_PREFER_PTHREAD_FLAG ON) # -pthreads on GNU-like compilers
-
     elseif (MSVC)
         set(DOBIE_FLAGS /W4) # Warning level 4
 
