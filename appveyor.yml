@@ -35,7 +35,7 @@ install:
 - sh: sudo apt-get install -qq libglu1-mesa-dev
 
 before_build:
-- cmd: call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" %arch%
+- cmd: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" %arch%
 
 build_script:
 - sh: qmake -v
