@@ -1,13 +1,3 @@
-function(dobie_win32_lean_and_mean TARGET)
-    if (WIN32)
-        # Needed to avoid ruining global scope with Windows.h on win32
-        target_compile_definitions(${TARGET} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-        if (MSVC)
-            target_compile_definitions(${TARGET} PRIVATE VC_EXTRALEAN)
-        endif()
-    endif()
-endfunction()
-
 function(dobie_cxx_compile_options TARGET)
     unset(DOBIE_FLAGS)
 
@@ -46,5 +36,9 @@ function(dobie_cxx_compile_options TARGET)
         target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
     endif()
 
-    dobie_win32_lean_and_mean(${TARGET})
+    # Needed to avoid ruining global scope with Windows.h on win32
+    target_compile_definitions(${TARGET} PRIVATE
+        $<$<BOOL:WIN32>:WIN32_LEAN_AND_MEAN NOMINMAX>
+        $<$<CXX_COMPILER_ID:MSVC>:VC_EXTRALEAN>)
+
 endfunction()
