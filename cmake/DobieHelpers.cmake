@@ -47,4 +47,6 @@ function(dobie_cxx_compile_options TARGET)
     if (DOBIE_FLAGS)
         target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
     endif()
+
+    dobie_win32_lean_and_mean(${TARGET})
 endfunction()

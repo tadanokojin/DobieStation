@@ -17,4 +17,3 @@ add_library(Dobie::Utils ALIAS ${TARGET})
 
 target_include_directories(${TARGET} PUBLIC ${CMAKE_SOURCE_DIR}/src)
 dobie_cxx_compile_options(${TARGET})
-dobie_win32_lean_and_mean(${TARGET})

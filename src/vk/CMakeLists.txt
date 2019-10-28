@@ -26,7 +26,6 @@ add_library(Dobie::VK ALIAS ${TARGET})
 target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(${TARGET} Dobie::Utils)
 dobie_cxx_compile_options(${TARGET})
-dobie_win32_lean_and_mean(${TARGET})
 
 # Quick hack to use bundled Vulkan headers until a proper way to find them is ascertained
 if (NOT VULKAN_FOUND)
