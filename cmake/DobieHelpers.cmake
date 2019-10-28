@@ -38,7 +38,7 @@ function(dobie_cxx_compile_options TARGET)
 
     # Needed to avoid ruining global scope with Windows.h on win32
     target_compile_definitions(${TARGET} PRIVATE
-        $<$<BOOL:WIN32>:WIN32_LEAN_AND_MEAN NOMINMAX>
+        $<$<PLATFORM_ID:Windows>:WIN32_LEAN_AND_MEAN NOMINMAX>
         $<$<CXX_COMPILER_ID:MSVC>:VC_EXTRALEAN>)
 
 endfunction()
