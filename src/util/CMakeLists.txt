@@ -15,5 +15,5 @@ set(HEADERS
 add_library(${TARGET} ${SOURCES} ${HEADERS})
 add_library(Dobie::Utils ALIAS ${TARGET})
 
-target_include_directories(${TARGET} PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 dobie_cxx_compile_options(${TARGET})

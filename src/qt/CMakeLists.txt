@@ -36,7 +36,9 @@ add_executable(${TARGET} ${SOURCES} ${HEADERS})
 set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "DobieStation") # Output as "DobieStation" instead of "DobieQt"
 
 dobie_cxx_compile_options(${TARGET})
-target_include_directories(${TARGET} PRIVATE ${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+target_include_directories(${TARGET} PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${Qt5Gui_PRIVATE_INCLUDE_DIRS})
 target_link_libraries(${TARGET}
     Dobie::Core Dobie::Utils
     $<$<NOT:$<PLATFORM_ID:Darwin>>:Dobie::VK>
