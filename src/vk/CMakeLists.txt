@@ -24,7 +24,7 @@ add_library(${TARGET} ${SOURCES} ${HEADERS})
 add_library(Dobie::VK ALIAS ${TARGET})
 
 target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(${TARGET} Dobie::Utils)
+target_link_libraries(${TARGET} Dobie::Utils Ext::glslang Ext::SPVRemapper)
 dobie_cxx_compile_options(${TARGET})
 
 # Quick hack to use bundled Vulkan headers until a proper way to find them is ascertained

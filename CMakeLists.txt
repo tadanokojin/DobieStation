@@ -10,6 +10,18 @@ set(THREADS_PREFER_PTHREAD_FLAG ON) # -pthreads on GNU-like compilers
 # Externals
 add_subdirectory(ext/libdeflate)
 add_subdirectory(ext/imgui)
+if (NOT APPLE)
+    # glslang options
+    set(BUILD_TESTING OFF CACHE BOOL "Build the testing tree.")
+    set(BUILD_EXTERNAL OFF CACHE BOOL "Build external dependencies in /External")
+    set(SKIP_GLSLANG_INSTALL ON CACHE BOOL "Skip installation")
+    set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Builds glslangValidator and spirv-remap")
+    set(ENABLE_HLSL OFF CACHE BOOL "Enables HLSL input support")
+
+    add_subdirectory(ext/glslang)
+    add_library(Ext::glslang ALIAS glslang)
+    add_library(Ext::SPVRemapper ALIAS SPVRemapper)
+endif()
 
 # Shared packages
 find_package(Threads REQUIRED)
