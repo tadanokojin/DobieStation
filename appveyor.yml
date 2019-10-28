@@ -3,7 +3,7 @@ version: 0.0.{build}
 skip_tags: true
 
 image:
-- Visual Studio 2017
+- Visual Studio 2019
 - ubuntu1804
 
 configuration: Release
