@@ -1,40 +1,27 @@
 function(dobie_cxx_compile_options TARGET)
-    unset(DOBIE_FLAGS)
 
-    if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR
-        ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR
-        ${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+    set(DOBIE_GNU_FLAGS
+        -Wall -Wundef -Wsign-compare -Wconversion -Wstrict-aliasing -Wtype-limits
 
-        set(DOBIE_FLAGS
-            -Wall -Wundef -Wsign-compare -Wconversion -Wstrict-aliasing -Wtype-limits
+        # These probably should be fixed instead of disabled,
+        # but doing so to keep the warning count more managable for now.
+        -Wno-reorder -Wno-unused-variable -Wno-unused-value
 
-            # These probably should be fixed instead of disabled,
-            # but doing so to keep the warning count more managable for now.
-            -Wno-reorder -Wno-unused-variable -Wno-unused-value
+        # Required on Debug configuration and all configurations on OSX, Dobie WILL crash otherwise.
+        $<$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CONFIG:Debug>>:-fomit-frame-pointer>
 
-            # Might be useful for debugging:
-            #-fomit-frame-pointer -fwrapv -fno-delete-null-pointer-checks -fno-strict-aliasing -fvisibility=hidden
-        )
+        $<$<CXX_COMPILER_ID:GNU>:-Wno-unused-but-set-variable> # GNU only warning
 
-        if (${CMAKE_BUILD_TYPE} MATCHES "Debug" OR
-            ${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+        # Might be useful for debugging:
+        #-fomit-frame-pointer -fwrapv -fno-delete-null-pointer-checks -fno-strict-aliasing -fvisibility=hidden
+    )
+    set(DOBIE_MSVC_FLAGS
+        /W4 # Warning level 4
+    )
 
-            # Required on Debug configuration and all configurations on OSX, Dobie WILL crash otherwise.
-            set(DOBIE_FLAGS ${DOBIE_FLAGS} -fomit-frame-pointer)
-        endif()
-
-        if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-            set(DOBIE_FLAGS ${DOBIE_FLAGS} -Wno-unused-but-set-variable) # GNU only warning
-        endif()
-
-    elseif (MSVC)
-        set(DOBIE_FLAGS /W4) # Warning level 4
-
-    endif()
-
-    if (DOBIE_FLAGS)
-        target_compile_options(${TARGET} PRIVATE ${DOBIE_FLAGS})
-    endif()
+    target_compile_options(${TARGET} PRIVATE
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:${DOBIE_GNU_FLAGS}>
+        $<$<CXX_COMPILER_ID:MSVC>:${DOBIE_MSVC_FLAGS}>)
 
     # Needed to avoid ruining global scope with Windows.h on win32
     target_compile_definitions(${TARGET} PRIVATE
