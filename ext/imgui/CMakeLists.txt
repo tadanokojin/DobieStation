@@ -1,5 +1,7 @@
 set(TARGET imgui)
+
 set(CMAKE_CXX_STANDARD 14)
+include(DobieHelpers)
 
 set(SOURCE
     imconfig.h
@@ -18,3 +20,4 @@ add_library(Ext::imgui ALIAS ${TARGET})
 
 target_include_directories(${TARGET}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+dobie_cxx_compile_options(${TARGET})
