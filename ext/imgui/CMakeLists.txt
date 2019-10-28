@@ -21,3 +21,4 @@ add_library(Ext::imgui ALIAS ${TARGET})
 target_include_directories(${TARGET}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 dobie_cxx_compile_options(${TARGET})
+set_property(TARGET ${TARGET} PROPERTY FOLDER External)
