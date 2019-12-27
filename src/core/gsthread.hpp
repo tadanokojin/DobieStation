@@ -9,6 +9,7 @@
 #include "gsregisters.hpp"
 #include "circularFIFO.hpp"
 #include "int128.hpp"
+#include "texcache.hpp"
 
 #include "jitcommon/emitter64.hpp"
 
@@ -376,6 +377,8 @@ class GraphicsSynthesizerThread
         GSTextureJitHeap jit_tex_lookup_heap;
         uint8_t* jit_draw_pixel_func;
         uint8_t* jit_tex_lookup_func;
+
+        TextureCache tex_cache;
 
         uint8_t prim_type;
         uint16_t FOG;

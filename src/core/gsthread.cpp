@@ -166,6 +166,8 @@ GraphicsSynthesizerThread::~GraphicsSynthesizerThread()
     delete[] local_mem;
     delete message_queue;
     delete return_queue;
+
+    tex_cache.flush();
 }
 
 void GraphicsSynthesizerThread::wait_for_return(GSReturn type, GSReturnMessage &data)
@@ -646,6 +648,8 @@ void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
             }
         }
     }
+
+    tex_cache.update_frame();
 }
 
 void GraphicsSynthesizerThread::dump_texture(uint32_t* target, uint32_t start_addr, uint32_t width)
@@ -1877,6 +1881,9 @@ void GraphicsSynthesizerThread::render_point()
     if (v1.x < current_ctx->scissor.x1 || v1.x > current_ctx->scissor.x2 ||
         v1.y < current_ctx->scissor.y1 || v1.y > current_ctx->scissor.y2)
         return;
+
+    tex_cache.lookup(current_ctx->tex0, current_ctx->tex1);
+
     printf("[GS_t] Rendering point!\n");
     printf("Coords: (%d, %d, %d)\n", v1.x >> 4, v1.y >> 4, v1.z);
     TexLookupInfo tex_info;
@@ -1917,6 +1924,9 @@ void GraphicsSynthesizerThread::render_point()
 void GraphicsSynthesizerThread::render_line()
 {
     printf("[GS_t] Rendering line!\n");
+
+    tex_cache.lookup(current_ctx->tex0, current_ctx->tex1);
+
     Vertex v1 = vtx_queue[1]; v1.to_relative(current_ctx->xyoffset);
     Vertex v2 = vtx_queue[0]; v2.to_relative(current_ctx->xyoffset);
 
@@ -2070,6 +2080,7 @@ void GraphicsSynthesizerThread::render_triangle2() {
     // where v0, v1, v2 are floating point pixel locations, ordered from low to high
     // (this triangles also has a positive area because the vertices are CCW)
 
+    tex_cache.lookup(current_ctx->tex0, current_ctx->tex1);
 
     Vertex unsortedVerts[3]; // vertices in the order they were sent to GS
     unsortedVerts[0] = vtx_queue[2]; unsortedVerts[0].to_relative(current_ctx->xyoffset);
@@ -2624,6 +2635,8 @@ void GraphicsSynthesizerThread::render_triangle()
 void GraphicsSynthesizerThread::render_sprite()
 {
     printf("[GS_t] Rendering sprite!\n");
+    tex_cache.lookup(current_ctx->tex0, current_ctx->tex1);
+
     Vertex v1 = vtx_queue[1]; v1.to_relative(current_ctx->xyoffset);
     Vertex v2 = vtx_queue[0]; v2.to_relative(current_ctx->xyoffset);
     TexLookupInfo tex_info;
