@@ -488,6 +488,7 @@ class GraphicsSynthesizerThread
         void draw_pixel(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
         void jit_draw_pixel(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
         uint32_t lookup_frame_color(int32_t x, int32_t y);
+        Texture* lookup_texture(TEX0& tex0, TEX1& tex1);
         void render_primitive();
         void render_point();
         void render_line();

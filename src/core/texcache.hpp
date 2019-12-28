@@ -62,6 +62,15 @@ struct Texture
     {
         m_data = std::make_unique<uint32_t[]>(m_tex0.tex_width * m_tex0.tex_height);
     }
+
+    bool map(uint32_t** buff)
+    {
+        *buff = m_data.get();
+        return true;
+    }
+
+    // not needed but common idiom
+    void unmap(){}
 };
 
 struct TextureCache
@@ -71,12 +80,17 @@ struct TextureCache
     cache_map_t m_cached_tex{};
     uint64_t misses_this_frame{0};
 
+    void add_texture(Texture* tex)
+    {
+        m_cached_tex.insert({ lookup_t(tex->m_tex0, tex->m_tex1), tex });
+        misses_this_frame++;
+    }
+
     // Attempts to find a texture in the cache
     // should it fail, it will perform a "miss"
     // and load the texture out of GS memory
     Texture* lookup(TEX0 tex0, TEX1 tex1)
     {
-        Texture* texture = nullptr;
         auto it = m_cached_tex.find(lookup_t(tex0, tex1));
 
         // lookup hit
@@ -97,14 +111,7 @@ struct TextureCache
             tex0.tex_width, tex0.tex_height
         );
 
-        // lookup miss
-        // create a new texture
-        texture = new Texture(tex0, tex1);
-        m_cached_tex.insert({ lookup_t(tex0, tex1), texture });
-
-        misses_this_frame++;
-
-        return texture;
+        return nullptr;
     }
 
     // update frame information
