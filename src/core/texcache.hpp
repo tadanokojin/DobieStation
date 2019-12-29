@@ -9,7 +9,7 @@
 struct Texture;
 struct TextureCache;
 
-using lookup_t = std::pair<TEX0, TEX1>;
+using lookup_t = std::pair<TEX0, TEXA_REG>;
 
 namespace std
 {
@@ -22,7 +22,7 @@ struct hash<lookup_t>
         std::hash<uint64_t> hasher;
 
         TEX0 tex0 = tex_info.first;
-        TEX1 tex1 = tex_info.second;
+        TEXA_REG tex1 = tex_info.second;
         
         // just a guess
         // might not be the best hashing function
@@ -57,11 +57,11 @@ struct Texture
     // buffer for the cached data
     std::unique_ptr<uint32_t[]> m_data{nullptr};
     TEX0 m_tex0;
-    TEX1 m_tex1;
+    TEXA_REG m_texa;
 
     Texture() = delete;
-    Texture(TEX0 tex0, TEX1 tex1) :
-        m_tex0(tex0), m_tex1(tex1)
+    Texture(TEX0 tex0, TEXA_REG texa) :
+        m_tex0(tex0), m_texa(texa)
     {
         m_data = std::make_unique<uint32_t[]>(m_tex0.tex_width * m_tex0.tex_height);
     }
@@ -82,7 +82,7 @@ struct Texture
 
         std::vector<unsigned char> image(width * height * 4);
 
-        for(auto y = 0; y < height; y++)
+        for (auto y = 0; y < height; y++)
         for (auto x = 0; x < width; x++)
         {
             image[4 * width * y + 4 * x + 0] = m_data[width * y + x];
@@ -94,7 +94,7 @@ struct Texture
         std::stringstream ss;
 
         std::hash<lookup_t> hasher;
-        auto hash = hasher(lookup_t(m_tex0, m_tex1));
+        auto hash = hasher(lookup_t(m_tex0, m_texa));
 
         ss << "dump/" << hash << "_" << name << "_";
 
@@ -165,16 +165,16 @@ struct TextureCache
 
     void add_texture(Texture* tex)
     {
-        m_cached_tex.insert({ lookup_t(tex->m_tex0, tex->m_tex1), tex });
+        m_cached_tex.insert({ lookup_t(tex->m_tex0, tex->m_texa), tex });
         misses_this_frame++;
     }
 
     // Attempts to find a texture in the cache
     // should it fail, it will perform a "miss"
     // and load the texture out of GS memory
-    Texture* lookup(TEX0 tex0, TEX1 tex1)
+    Texture* lookup(TEX0 tex0, TEXA_REG texa)
     {
-        auto it = m_cached_tex.find(lookup_t(tex0, tex1));
+        auto it = m_cached_tex.find(lookup_t(tex0, texa));
 
         // lookup hit
         if (it != m_cached_tex.end())

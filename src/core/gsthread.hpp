@@ -205,12 +205,6 @@ struct TRXPOS_REG
     uint8_t trans_order;
 };
 
-struct TEXA_REG
-{
-    uint8_t alpha0, alpha1;
-    bool trans_black;
-};
-
 struct TEXCLUT_REG
 {
     uint16_t width, x, y;
@@ -488,7 +482,7 @@ class GraphicsSynthesizerThread
         void draw_pixel(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
         void jit_draw_pixel(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
         uint32_t lookup_frame_color(int32_t x, int32_t y);
-        Texture* lookup_texture(TEX0& tex0, TEX1& tex1);
+        Texture* lookup_texture(TEX0& tex0, TEXA_REG& texa);
         void render_primitive();
         void render_point();
         void render_line();

@@ -29,6 +29,12 @@ struct TEX1
     float K;//sign bit, 7 bits integer, 4 bits decimal.
 };
 
+struct TEXA_REG
+{
+    uint8_t alpha0, alpha1;
+    bool trans_black;
+};
+
 struct CLAMP
 {
     uint8_t wrap_s;

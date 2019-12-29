@@ -1504,14 +1504,14 @@ uint32_t GraphicsSynthesizerThread::lookup_frame_color(int32_t x, int32_t y)
     return frame_color;
 }
 
-Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEX1& tex1)
+Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
 {
-    Texture* texture = tex_cache.lookup(tex0, tex1);
+    Texture* texture = tex_cache.lookup(tex0, texa);
 
     // lookup miss
     if (texture == nullptr)
     {
-        texture = new Texture(tex0, tex1);
+        texture = new Texture(tex0, texa);
 
         uint32_t* buff = nullptr;
         texture->map(&buff);
@@ -1527,8 +1527,6 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEX1& tex1)
             case 0x0: // C32
                 buff[width * y + x] = read_PSMCT32_block(tex0.texture_base, tex0.width, x, y);
                 break;
-            default:
-                buff[width * y + x] = 0xFFC0CB;
             }
         }
 
@@ -1918,7 +1916,7 @@ void GraphicsSynthesizerThread::render_point()
         v1.y < current_ctx->scissor.y1 || v1.y > current_ctx->scissor.y2)
         return;
 
-    Texture* texture = lookup_texture(current_ctx->tex0, current_ctx->tex1);
+    Texture* texture = lookup_texture(current_ctx->tex0, TEXA);
 
     printf("[GS_t] Rendering point!\n");
     printf("Coords: (%d, %d, %d)\n", v1.x >> 4, v1.y >> 4, v1.z);
@@ -1961,7 +1959,7 @@ void GraphicsSynthesizerThread::render_line()
 {
     printf("[GS_t] Rendering line!\n");
 
-    Texture* texture = lookup_texture(current_ctx->tex0, current_ctx->tex1);
+    Texture* texture = lookup_texture(current_ctx->tex0, TEXA);
 
     Vertex v1 = vtx_queue[1]; v1.to_relative(current_ctx->xyoffset);
     Vertex v2 = vtx_queue[0]; v2.to_relative(current_ctx->xyoffset);
@@ -2116,7 +2114,7 @@ void GraphicsSynthesizerThread::render_triangle2() {
     // where v0, v1, v2 are floating point pixel locations, ordered from low to high
     // (this triangles also has a positive area because the vertices are CCW)
 
-    Texture* texture = lookup_texture(current_ctx->tex0, current_ctx->tex1);
+    Texture* texture = lookup_texture(current_ctx->tex0, TEXA);
 
     Vertex unsortedVerts[3]; // vertices in the order they were sent to GS
     unsortedVerts[0] = vtx_queue[2]; unsortedVerts[0].to_relative(current_ctx->xyoffset);
@@ -2671,7 +2669,7 @@ void GraphicsSynthesizerThread::render_triangle()
 void GraphicsSynthesizerThread::render_sprite()
 {
     printf("[GS_t] Rendering sprite!\n");
-    Texture* texture = lookup_texture(current_ctx->tex0, current_ctx->tex1);
+    Texture* texture = lookup_texture(current_ctx->tex0, TEXA);
 
     Vertex v1 = vtx_queue[1]; v1.to_relative(current_ctx->xyoffset);
     Vertex v2 = vtx_queue[0]; v2.to_relative(current_ctx->xyoffset);
