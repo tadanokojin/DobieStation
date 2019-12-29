@@ -1527,6 +1527,9 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
             case 0x0: // C32
                 buff[width * y + x] = read_PSMCT32_block(tex0.texture_base, tex0.width, x, y);
                 break;
+            case 0x30: // Z32
+                buff[width * y + x] = read_PSMCT32Z_block(tex0.texture_base, tex0.width, x, y);
+                break;
             default:
                 buff[width * y + x] = 0xFFC0CB;
             }
