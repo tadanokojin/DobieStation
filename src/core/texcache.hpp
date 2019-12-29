@@ -81,6 +81,7 @@ struct Texture
         auto height = m_tex0.tex_height;
 
         std::vector<unsigned char> image(width * height * 4);
+        std::vector<unsigned char> image_alpha(width * height * 4);
 
         for (auto y = 0; y < height; y++)
         for (auto x = 0; x < width; x++)
@@ -89,6 +90,11 @@ struct Texture
             image[4 * width * y + 4 * x + 1] = m_data[width * y + x] >> 8;
             image[4 * width * y + 4 * x + 2] = m_data[width * y + x] >> 16;
             image[4 * width * y + 4 * x + 3] = 255;
+
+            image_alpha[4 * width * y + 4 * x + 0] = m_data[width * y + x] >> 24;
+            image_alpha[4 * width * y + 4 * x + 1] = m_data[width * y + x] >> 24;
+            image_alpha[4 * width * y + 4 * x + 2] = m_data[width * y + x] >> 24;
+            image_alpha[4 * width * y + 4 * x + 3] = 255;
         }
 
         std::stringstream ss;
@@ -143,12 +149,19 @@ struct Texture
             ss << "unk";
         }
 
-        ss << "_" << std::hex << m_tex0.texture_base << ".png";
+        ss << "_" << std::hex << m_tex0.texture_base;
 
-        auto err = lodepng::encode(ss.str(), image, width, height);
+        auto err = lodepng::encode(ss.str() + ".png", image, width, height);
         if (err)
         {
-            printf("[TEXCACHE] Error saving image %x: %s\n", err, lodepng_error_text(err));
+            printf("[TEXCACHE] Error saving color image %x: %s\n", err, lodepng_error_text(err));
+            return false;
+        }
+
+        err = lodepng::encode(ss.str() + "_alpha.png", image_alpha, width, height);
+        if (err)
+        {
+            printf("[TEXCACHE] Error saving alpha image %x: %s\n", err, lodepng_error_text(err));
             return false;
         }
 
