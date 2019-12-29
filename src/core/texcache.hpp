@@ -2,6 +2,7 @@
 #include <memory>
 #include <unordered_map>
 #include "gscontext.hpp"
+#include "lodepng.h"
 
 struct Texture;
 struct TextureCache;
@@ -71,6 +72,32 @@ struct Texture
 
     // not needed but common idiom
     void unmap(){}
+
+    bool save(std::string name)
+    {
+        auto width = m_tex0.tex_width;
+        auto height = m_tex0.tex_height;
+
+        std::vector<unsigned char> image(width * height * 4);
+
+        for(auto y = 0; y < height; y++)
+        for (auto x = 0; x < width; x++)
+        {
+            image[4 * width * y + 4 * x + 0] = m_data[width * y + x];
+            image[4 * width * y + 4 * x + 1] = m_data[width * y + x] >> 8;
+            image[4 * width * y + 4 * x + 2] = m_data[width * y + x] >> 16;
+            image[4 * width * y + 4 * x + 3] = 255;
+        }
+
+        auto err = lodepng::encode(name, image, width, height);
+        if (err)
+        {
+            printf("[TEXCACHE] Error saving image %x: %s\n", err, lodepng_error_text(err));
+            return false;
+        }
+
+        return true;
+    }
 };
 
 struct TextureCache

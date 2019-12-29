@@ -1516,20 +1516,24 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEX1& tex1)
         uint32_t* buff = nullptr;
         texture->map(&buff);
 
-        for (auto y = 0; y < tex0.tex_height; ++y)
-        for (auto x = 0; x < tex0.tex_width; ++x)
+        auto width = tex0.tex_width;
+        auto height = tex0.tex_height;
+
+        for (auto y = 0; y < height; y++)
+        for (auto x = 0; x < width; x++)
         {
             switch (tex0.format)
             {
             case 0x0:
-                buff[y + x] = read_PSMCT32_block(tex0.texture_base, tex0.width, x, y);
+                buff[width * y + x] = read_PSMCT32_block(tex0.texture_base, tex0.width, x, y);
                 break;
             default:
-                buff[y + x] = 0;
+                buff[width * y + x] = 0;
             }
         }
 
         texture->unmap();
+        texture->save("test.png");
         tex_cache.add_texture(texture);
     }
 
