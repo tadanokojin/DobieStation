@@ -1524,16 +1524,16 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEX1& tex1)
         {
             switch (tex0.format)
             {
-            case 0x0:
+            case 0x0: // C32
                 buff[width * y + x] = read_PSMCT32_block(tex0.texture_base, tex0.width, x, y);
                 break;
             default:
-                buff[width * y + x] = 0;
+                buff[width * y + x] = 0xFFC0CB;
             }
         }
 
         texture->unmap();
-        texture->save("test.png");
+        texture->save("input");
         tex_cache.add_texture(texture);
     }
 

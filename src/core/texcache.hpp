@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
+#include <string>
+#include <sstream>
 #include "gscontext.hpp"
 #include "lodepng.h"
 
@@ -89,7 +91,61 @@ struct Texture
             image[4 * width * y + 4 * x + 3] = 255;
         }
 
-        auto err = lodepng::encode(name, image, width, height);
+        std::stringstream ss;
+
+        std::hash<lookup_t> hasher;
+        auto hash = hasher(lookup_t(m_tex0, m_tex1));
+
+        ss << "dump/" << hash << "_" << name << "_";
+
+        switch (m_tex0.format)
+        {
+        case 0x0:
+            ss << "CT32";
+            break;
+        case 0x1:
+            ss << "CT24";
+            break;
+        case 0x2:
+            ss << "CT16";
+            break;
+        case 0xA:
+            ss << "CT16S";
+            break;
+        case 0x13:
+            ss << "T8";
+            break;
+        case 0x14:
+            ss << "T4";
+            break;
+        case 0x1B:
+            ss << "T8H";
+            break;
+        case 0x24:
+            ss << "T4HL";
+            break;
+        case 0x2C:
+            ss << "T4HH";
+            break;
+        case 0x30:
+            ss << "Z32";
+            break;
+        case 0x31:
+            ss << "Z24";
+            break;
+        case 0x32:
+            ss << "Z16";
+            break;
+        case 0x3A:
+            ss << "Z16S";
+            break;
+        default:
+            ss << "unk";
+        }
+
+        ss << "_" << std::hex << m_tex0.texture_base << ".png";
+
+        auto err = lodepng::encode(ss.str(), image, width, height);
         if (err)
         {
             printf("[TEXCACHE] Error saving image %x: %s\n", err, lodepng_error_text(err));
@@ -124,7 +180,7 @@ struct TextureCache
         if (it != m_cached_tex.end())
         {
             printf(
-                "[TexCache] hit! ($%x) ($%x) w: %d h: %d \n",
+                "[TEXCACHE] hit! ($%x) ($%x) w: %d h: %d \n",
                 tex0.texture_base, tex0.format,
                 tex0.tex_width, tex0.tex_height
             );
@@ -133,7 +189,7 @@ struct TextureCache
         }
 
         printf(
-            "[TexCache] miss! ($%x) ($%x) w: %d h: %d \n",
+            "[TEXCACHE] miss! ($%x) ($%x) w: %d h: %d \n",
             tex0.texture_base, tex0.format,
             tex0.tex_width, tex0.tex_height
         );
