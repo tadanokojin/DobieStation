@@ -30,7 +30,8 @@
 
       <!-- includes -->
       <AdditionalIncludeDirectories>$(UIDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories>$(ExtDir)\libdeflate;$(ExtDir)\libdeflate\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExtDir)\lodepng;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExtDir)\libdeflate;$(ExtDir)\libdeflate\common;$(ExtDir)\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 
       <!-- preprocessor-->
       <PreprocessToFile>false</PreprocessToFile>
@@ -60,6 +61,7 @@
       <IgnoreImportLibrary>true</IgnoreImportLibrary>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <AdditionalDependencies>$(BinDir)\Core$(Postfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(BinDir)\lodepng$(Postfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalDependencies>$(BinDir)\libdeflate$(Postfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
