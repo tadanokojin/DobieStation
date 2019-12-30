@@ -1518,25 +1518,54 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
 
         auto width = tex0.tex_width;
         auto height = tex0.tex_height;
+        auto texture_base = tex0.texture_base;
 
+        // What we are caching:
+        // 1. results of swizzling
+        // 2. results of alpha expansion
+        // 3. results of clut conversion
         for (auto y = 0; y < height; y++)
         for (auto x = 0; x < width; x++)
         {
             switch (tex0.format)
             {
             case 0x0: // C32
-                buff[width * y + x] = read_PSMCT32_block(tex0.texture_base, tex0.width, x, y);
-                break;
+            {
+                uint32_t color = read_PSMCT32_block(texture_base, tex0.width, x, y);
+                buff[width * y + x] = color;
+            } break;
+            case 0x1: // C24
+            {
+                uint32_t color = read_PSMCT32_block(texture_base, tex0.width, x, y);
+                color &= ~(0xFF << 24);
+
+                if (color & 0xFFFFFF && !texa.trans_black)
+                    color |= texa.alpha0 << 24;
+
+                buff[width * y + x] = color;
+            } break;
             case 0x30: // Z32
-                buff[width * y + x] = read_PSMCT32Z_block(tex0.texture_base, tex0.width, x, y);
-                break;
+            {
+                uint32_t color = read_PSMCT32Z_block(texture_base, tex0.width, x, y);
+                buff[width * y + x] = color;
+            } break;
+            case 0x31: // Z24
+            {
+                uint32_t color = read_PSMCT32Z_block(texture_base, tex0.width, x, y);
+                color &= ~(0xFF << 24);
+
+                if(color & 0xFFFFFF && !texa.trans_black)
+                    color |= texa.alpha0 << 24;
+
+                buff[width * y + x] = color;
+            } break;
             default:
                 buff[width * y + x] = 0xFFC0CB;
             }
         }
 
         texture->unmap();
-        texture->save("input");
+        //texture->save("input");
         tex_cache.add_texture(texture);
     }
 
@@ -2934,6 +2963,7 @@ void GraphicsSynthesizerThread::write_HWREG(uint64_t data)
         printf("[GS_t] HWREG transfer ended\n");
         TRXDIR = 3;
         pixels_transferred = 0;
+        //tex_cache.flush();
     }
 }
 
