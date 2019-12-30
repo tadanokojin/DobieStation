@@ -1511,11 +1511,6 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
     // lookup miss
     if (texture == nullptr)
     {
-        texture = new Texture(tex0, texa);
-
-        uint32_t* buff = nullptr;
-        texture->map(&buff);
-
         auto width = tex0.tex_width;
         auto height = tex0.tex_height;
         auto texture_base = tex0.texture_base;
@@ -1524,6 +1519,12 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
         // 1. results of swizzling
         // 2. results of alpha expansion
         // 3. results of clut conversion
+        texture = new Texture(tex0, texa);
+        uint32_t* buff = nullptr;
+        uint32_t color = 0;
+
+        texture->map(&buff);
+
         for (auto y = 0; y < height; y++)
         for (auto x = 0; x < width; x++)
         {
@@ -1531,82 +1532,83 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
 
             switch (tex0.format)
             {
-            case 0x0: // C32
-            {
-                uint32_t color = read_PSMCT32_block(texture_base, tex0.width, x, y);
-                buff[index] = color;
-            } break;
-            case 0x1: // C24
-            {
-                uint32_t color = read_PSMCT32_block(texture_base, tex0.width, x, y);
-                color &= ~(0xFF << 24);
+                case 0x0: // C32
+                    color = read_PSMCT32_block(texture_base, tex0.width, x, y);
+                    buff[index] = color;
+                    break;
+                case 0x1: // C24
+                    color = read_PSMCT32_block(texture_base, tex0.width, x, y);
+                    color &= ~(0xFF << 24);
 
-                if (color & 0xFFFFFF && !texa.trans_black)
-                    color |= texa.alpha0 << 24;
+                    if (color & 0xFFFFFF && !texa.trans_black)
+                        color |= texa.alpha0 << 24;
 
-                buff[index] = color;
-            } break;
-            case 0x2: // C16
-            {
-                uint32_t wan = read_PSMCT16_block(texture_base, tex0.width, x, y);
-                uint32_t r = (wan & 0x1F) << 3;
-                uint32_t g = ((wan >> 5) & 0x1F) << 3;
-                uint32_t b = ((wan >> 10) & 0x1F) << 3;
-                uint32_t a = get_16bit_alpha(wan);
+                    buff[index] = color;
+                    break;
+                case 0x2: // C16
+                {
+                    uint32_t wan = read_PSMCT16_block(texture_base, tex0.width, x, y);
+                    uint32_t r = (wan & 0x1F) << 3;
+                    uint32_t g = ((wan >> 5) & 0x1F) << 3;
+                    uint32_t b = ((wan >> 10) & 0x1F) << 3;
+                    uint32_t a = get_16bit_alpha(wan);
 
-                buff[index] = r | (g << 8) | (b << 16) | (a << 24);
-            } break;
-            case 0xA: // C16S
-            {
-                uint32_t wan = read_PSMCT16S_block(texture_base, tex0.width, x, y);
-                uint32_t r = (wan & 0x1F) << 3;
-                uint32_t g = ((wan >> 5) & 0x1F) << 3;
-                uint32_t b = ((wan >> 10) & 0x1F) << 3;
-                uint32_t a = get_16bit_alpha(wan);
+                    color = r | (g << 8) | (b << 16) | (a << 24);
+                    buff[index] = color;
+                } break;
+                case 0xA: // C16S
+                {
+                    uint32_t wan = read_PSMCT16S_block(texture_base, tex0.width, x, y);
+                    uint32_t r = (wan & 0x1F) << 3;
+                    uint32_t g = ((wan >> 5) & 0x1F) << 3;
+                    uint32_t b = ((wan >> 10) & 0x1F) << 3;
+                    uint32_t a = get_16bit_alpha(wan);
 
-                buff[index] = r | (g << 8) | (b << 16) | (a << 24);
-            } break;
-            case 0x30: // Z32
-            {
-                uint32_t color = read_PSMCT32Z_block(texture_base, tex0.width, x, y);
-                buff[index] = color;
-            } break;
-            case 0x31: // Z24
-            {
-                uint32_t color = read_PSMCT32Z_block(texture_base, tex0.width, x, y);
-                color &= ~(0xFF << 24);
+                    color = r | (g << 8) | (b << 16) | (a << 24);
+                    buff[index] = color;
+                } break;
+                case 0x30: // Z32
+                    color = read_PSMCT32Z_block(texture_base, tex0.width, x, y);
+                    buff[index] = color;
+                    break;
+                case 0x31: // Z24
+                    color = read_PSMCT32Z_block(texture_base, tex0.width, x, y);
+                    color &= ~(0xFF << 24);
 
-                if(color & 0xFFFFFF && !texa.trans_black)
-                    color |= texa.alpha0 << 24;
+                    if(color & 0xFFFFFF && !texa.trans_black)
+                        color |= texa.alpha0 << 24;
 
-                buff[index] = color;
-            } break;
-            case 0x32: // Z16
-            {
-                uint32_t wan = read_PSMCT16Z_block(texture_base, tex0.width, x, y);
-                uint32_t r = (wan & 0x1F) << 3;
-                uint32_t g = ((wan >> 5) & 0x1F) << 3;
-                uint32_t b = ((wan >> 10) & 0x1F) << 3;
-                uint32_t a = get_16bit_alpha(wan);
+                    buff[index] = color;
+                    break;
+                case 0x32: // Z16
+                {
+                    uint32_t wan = read_PSMCT16Z_block(texture_base, tex0.width, x, y);
+                    uint32_t r = (wan & 0x1F) << 3;
+                    uint32_t g = ((wan >> 5) & 0x1F) << 3;
+                    uint32_t b = ((wan >> 10) & 0x1F) << 3;
+                    uint32_t a = get_16bit_alpha(wan);
 
-                buff[index] = r | (g << 8) | (b << 16) | (a << 24);
-            } break;
-            case 0x3A: // Z16S
-            {
-                uint32_t wan = read_PSMCT16SZ_block(texture_base, tex0.width, x, y);
-                uint32_t r = (wan & 0x1F) << 3;
-                uint32_t g = ((wan >> 5) & 0x1F) << 3;
-                uint32_t b = ((wan >> 10) & 0x1F) << 3;
-                uint32_t a = get_16bit_alpha(wan);
+                    color = r | (g << 8) | (b << 16) | (a << 24);
+                    buff[index] = color;
+                } break;
+                case 0x3A: // Z16S
+                {
+                    uint32_t wan = read_PSMCT16SZ_block(texture_base, tex0.width, x, y);
+                    uint32_t r = (wan & 0x1F) << 3;
+                    uint32_t g = ((wan >> 5) & 0x1F) << 3;
+                    uint32_t b = ((wan >> 10) & 0x1F) << 3;
+                    uint32_t a = get_16bit_alpha(wan);
 
-                buff[index] = r | (g << 8) | (b << 16) | (a << 24);
-            } break;
-            default: // invalid format
-                buff[index] = 0xFFC0CB;
+                    color = r | (g << 8) | (b << 16) | (a << 24);
+                    buff[index] = color;
+                } break;
+                default: // invalid format
+                    buff[index] = 0xFFC0CB;
             }
         }
 
         texture->unmap();
+
         //texture->save("input");
         tex_cache.add_texture(texture);
     }
