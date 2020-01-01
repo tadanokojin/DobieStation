@@ -224,6 +224,9 @@
     <ClCompile Include="$(CoreDir)scheduler.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\core\texcache.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(CoreDir)ee\bios_hle.hpp">

@@ -648,8 +648,6 @@ void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
             }
         }
     }
-
-    tex_cache.update_frame();
 }
 
 void GraphicsSynthesizerThread::dump_texture(uint32_t* target, uint32_t start_addr, uint32_t width)
