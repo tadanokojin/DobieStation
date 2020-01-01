@@ -1,4 +1,15 @@
+#include <stdarg.h>
 #include "texcache.hpp"
+
+TextureCache::TextureCache()
+{
+    tclog::init();
+}
+
+TextureCache::~TextureCache()
+{
+    tclog::shutdown();
+}
 
 void TextureCache::add_texture(Texture* tex)
 {
@@ -6,35 +17,37 @@ void TextureCache::add_texture(Texture* tex)
     misses_this_frame++;
 }
 
-// Attempts to find a texture in the cache
-// should it fail, it will perform a "miss"
-// and load the texture out of GS memory
 Texture* TextureCache::lookup(TEX0 tex0, TEXA_REG texa)
 {
     auto it = m_cached_tex.find(lookup_t(tex0, texa));
+    std::hash<lookup_t> hasher;
 
     // lookup hit
     if (it != m_cached_tex.end())
     {
-        printf(
-            "[TEXCACHE] hit! ($%x) ($%x) w: %d h: %d \n",
-            tex0.texture_base, tex0.format,
-            tex0.tex_width, tex0.tex_height
-        );
+        tclog::log("[TEXCACHE] hit! ($%x) ($%x) ($%x) w: %d h: %d \n",
+                    hasher(lookup_t(tex0, texa)),
+                    tex0.texture_base, tex0.format,
+                    tex0.tex_width, tex0.tex_height);
 
         return it->second;
     }
 
-    printf(
-        "[TEXCACHE] miss! ($%x) ($%x) w: %d h: %d \n",
-        tex0.texture_base, tex0.format,
-        tex0.tex_width, tex0.tex_height
-    );
+    tclog::log("[TEXCACHE] miss!\n");
+    tclog::log("\thash: %x\n", hasher(lookup_t(tex0, texa)));
+    tclog::log("\tbase: $%x\n", tex0.texture_base);
+    tclog::log("\tformat: $%x\n", tex0.format);
+    tclog::log("\tbuffer width: $%x\n", tex0.width);
+    tclog::log("\twidth: %d\n", tex0.tex_width);
+    tclog::log("\theight: %d\n", tex0.tex_height);
+    tclog::log("\tuse alpha: $%x\n", tex0.use_alpha);
+    tclog::log("\t16/24 alpha (A=0): $%x\n", texa.alpha0);
+    tclog::log("\tmethod of expansion: $%x\n", texa.trans_black);
+    tclog::log("\t16 alpha (A=1): $%x\n", tex0.texture_base);
 
     return nullptr;
 }
 
-// flushes the entire cache
 void TextureCache::flush()
 {
     // TODO
@@ -57,7 +70,6 @@ bool Texture::map(uint32_t** buff)
     return true;
 }
 
-// not needed but common idiom
 void Texture::unmap()
 {
 
@@ -142,16 +154,40 @@ bool Texture::save(std::string name)
     auto err = lodepng::encode(ss.str() + ".png", image, width, height);
     if (err)
     {
-        printf("[TEXCACHE] Error saving color image %x: %s\n", err, lodepng_error_text(err));
+        tclog::log("[TEXCACHE] Error saving color image %x: %s\n", err, lodepng_error_text(err));
         return false;
     }
 
     err = lodepng::encode(ss.str() + "_alpha.png", image_alpha, width, height);
     if (err)
     {
-        printf("[TEXCACHE] Error saving alpha image %x: %s\n", err, lodepng_error_text(err));
+        tclog::log("[TEXCACHE] Error saving alpha image %x: %s\n", err, lodepng_error_text(err));
         return false;
     }
 
     return true;
+}
+
+FILE* tclog::s_file;
+
+void tclog::init()
+{
+    s_file = fopen("tc.log", "w");
+}
+
+void tclog::shutdown()
+{
+    if (s_file)
+        fclose(s_file);
+}
+
+void tclog::log(char const* const format,  ...)
+{
+    if (s_file)
+    {
+        va_list arglist;
+        va_start(arglist, format);
+        vfprintf(s_file, format, arglist);
+        va_end(arglist);
+    }
 }

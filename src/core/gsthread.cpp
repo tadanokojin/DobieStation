@@ -1607,7 +1607,7 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
 
         texture->unmap();
 
-        //texture->save("input");
+        texture->save("input");
         tex_cache.add_texture(texture);
     }
 
@@ -3002,10 +3002,13 @@ void GraphicsSynthesizerThread::write_HWREG(uint64_t data)
     if (pixels_transferred >= max_pixels)
     {
         //Deactivate the transmisssion
-        printf("[GS_t] HWREG transfer ended\n");
+        tclog::log("[GS_t] END EE TRANSFER\n");
+        tclog::log("\tdest base: $%x\n", BITBLTBUF.dest_base);
+        tclog::log("\tdest format: $%x\n", BITBLTBUF.dest_format);
+        tclog::log("\tdest width: $%x\n", BITBLTBUF.dest_width);
+
         TRXDIR = 3;
         pixels_transferred = 0;
-        //tex_cache.flush();
     }
 }
 
@@ -3215,10 +3218,14 @@ uint64_t GraphicsSynthesizerThread::pack_PSMCT24(bool z_format)
 
 void GraphicsSynthesizerThread::local_to_local()
 {
-    printf("[GS_t] Local to local transfer\n");
-    printf("(%d, %d) -> (%d, %d)\n", TRXPOS.source_x, TRXPOS.source_y, TRXPOS.dest_x, TRXPOS.dest_y);
-    printf("Trans order: %d\n", TRXPOS.trans_order);
-    printf("Source: $%08X Dest: $%08X\n", BITBLTBUF.source_base, BITBLTBUF.dest_base);
+    tclog::log("[GS_t] BEGIN LOCAL TO LOCAL\n");
+    tclog::log("\t(%d, %d) -> (%d, %d)\n", TRXPOS.source_x, TRXPOS.source_y, TRXPOS.dest_x, TRXPOS.dest_y);
+    tclog::log("\tTrans order: %d\n", TRXPOS.trans_order);
+    tclog::log("\tSource: $%08X\n", BITBLTBUF.source_base);
+    tclog::log("\tSource format: $%08X\n", BITBLTBUF.source_format);
+    tclog::log("\tDest: $%08X\n", BITBLTBUF.dest_base);
+    tclog::log("\tDest format: $%08X\n", BITBLTBUF.dest_format);
+
     int max_pixels = TRXREG.width * TRXREG.height;
 
     uint16_t start_x = 0, start_y = 0;
@@ -3344,6 +3351,8 @@ void GraphicsSynthesizerThread::local_to_local()
     }
     pixels_transferred = 0;
     TRXDIR = 3;
+
+    tclog::log("[GS_t] END LOCAL TO LOCAL\n");
 }
 
 uint8_t GraphicsSynthesizerThread::get_16bit_alpha(uint16_t color)

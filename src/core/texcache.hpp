@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <sstream>
+#include <stdio.h>
 #include "gscontext.hpp"
 #include "lodepng.h"
 
@@ -86,9 +87,17 @@ struct TextureCache
     cache_map_t m_cached_tex{};
     uint64_t misses_this_frame{0};
 
+    TextureCache();
+    ~TextureCache();
+
     void add_texture(Texture* tex);
+
+    // Attempts to find a texture in the cache
+    // should it fail, it will perform a "miss"
+    // and load the texture out of GS memory
     Texture* lookup(TEX0 tex0, TEXA_REG texa);
 
+    // flushes the entire cache
     void flush();
 };
 
@@ -106,7 +115,20 @@ struct Texture
     Texture(TEX0 tex0, TEXA_REG texa);
 
     bool map(uint32_t** buff);
-    void unmap();
+    void unmap(); // not needed but common idiom
 
     bool save(std::string name);
+};
+
+
+// not awesome but will do for now
+// just a small utility for loging tc
+struct tclog
+{
+    static FILE* s_file;
+
+    static void init();
+    static void shutdown();
+
+    static void log(char const* const format, ...);
 };
