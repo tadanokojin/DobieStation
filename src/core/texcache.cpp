@@ -44,6 +44,8 @@ Texture* TextureCache::lookup(TEX0 tex0, TEXA_REG texa)
     tclog::log("\t16/24 alpha (A=0): $%x\n", texa.alpha0);
     tclog::log("\tmethod of expansion: $%x\n", texa.trans_black);
     tclog::log("\t16 alpha (A=1): $%x\n", tex0.texture_base);
+    tclog::log("\tclut base: $%x\n", tex0.CLUT_base);
+    tclog::log("\tclut format: $%x\n", tex0.CLUT_format);
 
     return nullptr;
 }

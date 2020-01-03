@@ -1565,6 +1565,15 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
                     color = r | (g << 8) | (b << 16) | (a << 24);
                     buff[index] = color;
                 } break;
+                case 0x13: // T8
+                {
+                    uint8_t entry = read_PSMCT8_block(texture_base, tex0.width, x, y);
+                    uint32_t clut_addr = tex0.CLUT_offset;
+                    uint32_t color = *(uint32_t*)&clut_cache[((clut_addr << 1) + (entry << 2)) & 0x7FF];
+
+                    buff[index] = color;
+                    break;
+                }
                 case 0x30: // Z32
                     color = read_PSMCT32Z_block(texture_base, tex0.width, x, y);
                     buff[index] = color;
@@ -3003,9 +3012,14 @@ void GraphicsSynthesizerThread::write_HWREG(uint64_t data)
     {
         //Deactivate the transmisssion
         tclog::log("[GS_t] END EE TRANSFER\n");
+        tclog::log("\ttwidth: %d\n", TRXREG.width);
+        tclog::log("\ttheight: %d\n", TRXREG.height);
         tclog::log("\tdest base: $%x\n", BITBLTBUF.dest_base);
         tclog::log("\tdest format: $%x\n", BITBLTBUF.dest_format);
         tclog::log("\tdest width: $%x\n", BITBLTBUF.dest_width);
+        tclog::log("\t(%d, %d) -> (%d, %d)\n",
+            TRXPOS.source_x, TRXPOS.source_y,
+            TRXPOS.dest_x, TRXPOS.dest_y);
 
         TRXDIR = 3;
         pixels_transferred = 0;
@@ -3219,12 +3233,18 @@ uint64_t GraphicsSynthesizerThread::pack_PSMCT24(bool z_format)
 void GraphicsSynthesizerThread::local_to_local()
 {
     tclog::log("[GS_t] BEGIN LOCAL TO LOCAL\n");
-    tclog::log("\t(%d, %d) -> (%d, %d)\n", TRXPOS.source_x, TRXPOS.source_y, TRXPOS.dest_x, TRXPOS.dest_y);
+    tclog::log("\ttwidth: %d\n", TRXREG.width);
+    tclog::log("\ttheight: %d\n", TRXREG.height);
+    tclog::log("\t(%d, %d) -> (%d, %d)\n",
+                TRXPOS.source_x, TRXPOS.source_y,
+                TRXPOS.dest_x, TRXPOS.dest_y);
     tclog::log("\tTrans order: %d\n", TRXPOS.trans_order);
     tclog::log("\tSource: $%08X\n", BITBLTBUF.source_base);
     tclog::log("\tSource format: $%08X\n", BITBLTBUF.source_format);
+    tclog::log("\tSource width: $%08X\n", BITBLTBUF.source_width);
     tclog::log("\tDest: $%08X\n", BITBLTBUF.dest_base);
     tclog::log("\tDest format: $%08X\n", BITBLTBUF.dest_format);
+    tclog::log("\tDest width: $%08X\n", BITBLTBUF.dest_width);
 
     int max_pixels = TRXREG.width * TRXREG.height;
 
@@ -3349,9 +3369,9 @@ void GraphicsSynthesizerThread::local_to_local()
             TRXPOS.int_dest_y += y_step;
         }
     }
+
     pixels_transferred = 0;
     TRXDIR = 3;
-
     tclog::log("[GS_t] END LOCAL TO LOCAL\n");
 }
 
