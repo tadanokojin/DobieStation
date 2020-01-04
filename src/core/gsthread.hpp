@@ -330,6 +330,9 @@ struct VertexF
     }
 };
 
+typedef void (*GSDrawPixelPrologue)(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
+typedef void (*GSTexLookupPrologue)(int16_t u, int16_t v, TexLookupInfo* info);
+
 class GraphicsSynthesizerThread
 {
     private:
@@ -369,8 +372,12 @@ class GraphicsSynthesizerThread
 
         GSPixelJitHeap jit_draw_pixel_heap;
         GSTextureJitHeap jit_tex_lookup_heap;
+
         uint8_t* jit_draw_pixel_func;
         uint8_t* jit_tex_lookup_func;
+
+        GSTexLookupPrologue jit_tex_lookup_prologue;
+        GSDrawPixelPrologue jit_draw_pixel_prologue;
 
         TextureCache tex_cache;
 
@@ -457,13 +464,14 @@ class GraphicsSynthesizerThread
         void calculate_LOD(TexLookupInfo& info);
         void tex_lookup(int16_t u, int16_t v, TexLookupInfo& info);
         void tex_lookup_int(int16_t u, int16_t v, TexLookupInfo& info, bool forced_lookup = false);
-        void jit_tex_lookup(int16_t u, int16_t v, TexLookupInfo* info);
         void clut_lookup(uint8_t entry, RGBAQ_REG& tex_color);
         void clut_CSM2_lookup(uint8_t entry, RGBAQ_REG& tex_color);
         void reload_clut(const GSContext& context);
         void update_draw_pixel_state();
         void update_tex_lookup_state();
         uint8_t* get_jitted_draw_pixel(uint64_t state);
+
+        void recompile_draw_pixel_prologue();
         GSPixelJitBlockRecord* recompile_draw_pixel(uint64_t state);
         void recompile_alpha_test();
         void recompile_depth_test();
@@ -471,6 +479,7 @@ class GraphicsSynthesizerThread
         void jit_call_func(Emitter64& emitter, uint64_t addr);
         void jit_epilogue_draw_pixel();
 
+        void recompile_tex_lookup_prologue();
         uint8_t* get_jitted_tex_lookup(uint64_t state);
         GSTextureJitBlockRecord* recompile_tex_lookup(uint64_t state);
         void recompile_clut_lookup();
@@ -480,7 +489,6 @@ class GraphicsSynthesizerThread
         void vertex_kick(bool drawing_kick);
         bool depth_test(int32_t x, int32_t y, uint32_t z);
         void draw_pixel(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
-        void jit_draw_pixel(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
         uint32_t lookup_frame_color(int32_t x, int32_t y);
         Texture* lookup_texture(TEX0& tex0, TEXA_REG& texa);
         void render_primitive();

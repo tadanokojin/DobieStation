@@ -9,17 +9,6 @@
 #include "gsmem.hpp"
 #include "errors.hpp"
 
-#ifdef _MSC_VER
-#define _noinline(type) __declspec(noinline) type
-#else
-#define _noinline(type) type __attribute__ ((noinline))
-#endif
-
-#ifdef _WIN32
-extern "C" void jit_draw_pixel_asm(uint8_t* func, int32_t x, int32_t y, uint32_t z, RGBAQ_REG* color);
-extern "C" void jit_tex_lookup_asm(uint8_t* func, int16_t u, int16_t v, TexLookupInfo* tex_info);
-#endif
-
 using namespace std;
 
 //Swizzling tables - we declare these outside the class to prevent a stack overflow
@@ -487,9 +476,14 @@ void GraphicsSynthesizerThread::reset()
 
     jit_draw_pixel_func = nullptr;
     jit_tex_lookup_func = nullptr;
+    jit_draw_pixel_prologue = nullptr;
+    jit_tex_lookup_prologue = nullptr;
 
     jit_tex_lookup_heap.flush_all_blocks();
     jit_draw_pixel_heap.flush_all_blocks();
+
+    recompile_tex_lookup_prologue();
+    recompile_draw_pixel_prologue();
 
     reset_fifos();
 }
@@ -1024,11 +1018,15 @@ void GraphicsSynthesizerThread::write64(uint32_t addr, uint64_t value)
             {
                 pixels_transferred = 0;
                 printf("Transfer started!\n");
+                printf("Src base: $%08X\n", BITBLTBUF.source_base);
                 printf("Dest base: $%08X\n", BITBLTBUF.dest_base);
-                printf("TRXPOS: (%d, %d)\n", TRXPOS.dest_x, TRXPOS.dest_y);
+                printf("Src TRXPOS: (%d, %d)\n", TRXPOS.source_x, TRXPOS.source_y);
+                printf("Dest TRXPOS: (%d, %d)\n", TRXPOS.dest_x, TRXPOS.dest_y);
                 printf("TRXREG (%d, %d)\n", TRXREG.width, TRXREG.height);
-                printf("Format: $%02X\n", BITBLTBUF.dest_format);
-                printf("Width: %d\n", BITBLTBUF.dest_width);
+                printf("Src Format: $%02X\n", BITBLTBUF.source_format);
+                printf("Dest Format: $%02X\n", BITBLTBUF.dest_format);
+                printf("Src Width: %d\n", BITBLTBUF.source_width);
+                printf("Dest Width: %d\n", BITBLTBUF.dest_width);
                 TRXPOS.int_dest_x = TRXPOS.dest_x;
                 TRXPOS.int_source_x = TRXPOS.source_x;
                 TRXPOS.int_dest_y = TRXPOS.dest_y;
@@ -1836,7 +1834,7 @@ void GraphicsSynthesizerThread::draw_pixel(int32_t x, int32_t y, uint32_t z, RGB
             fr &= 0xFF;
         }
 
-        final_color |= alpha << 24;
+        final_color |= color.a << 24;
         final_color |= fb << 16;
         final_color |= fg << 8;
         final_color |= fr;
@@ -1956,33 +1954,44 @@ void GraphicsSynthesizerThread::draw_pixel(int32_t x, int32_t y, uint32_t z, RGB
     }
 }
 
-_noinline(void) GraphicsSynthesizerThread::jit_draw_pixel(int32_t x, int32_t y,
-                                               uint32_t z, RGBAQ_REG &color)
+void GraphicsSynthesizerThread::recompile_draw_pixel_prologue()
 {
-#ifdef _MSC_VER
-    jit_draw_pixel_asm(jit_draw_pixel_func, x, y, z, &color);
-#else
-    __asm__(
-        "pushq %%r12\n\t"
-        "pushq %%r13\n\t"
-        "pushq %%r14\n\t"
-        "pushq %%r15\n\t"
-        "subq $8, %%rsp\n\t"
-        "mov %0, %%r12d\n\t"
-        "mov %1, %%r13d\n\t"
-        "mov %2, %%r14d\n\t"
-        "mov %3, %%r15\n\t"
-        "callq *%4\n\t"
-        "addq $8, %%rsp\n\t"
-        "popq %%r15\n\t"
-        "popq %%r14\n\t"
-        "popq %%r13\n\t"
-        "popq %%r12\n\t"
-                :
-                : "r" (x), "r" (y), "r" (z), "X" (*(uint64_t*)(&color)), "r" (jit_draw_pixel_func)
+    jit_draw_pixel_block.clear();
 
-    );
+    emitter_dp.PUSH(REG_64::RBP);
+    emitter_dp.MOV64_MR(REG_64::RSP, REG_64::RBP);
+    emitter_dp.PUSH(REG_64::R12);
+    emitter_dp.PUSH(REG_64::R13);
+    emitter_dp.PUSH(REG_64::R14);
+    emitter_dp.PUSH(REG_64::R15);
+
+#ifdef _WIN32
+    emitter_dp.MOV32_REG(REG_64::RCX, REG_64::R12);
+    emitter_dp.MOV32_REG(REG_64::RDX, REG_64::R13);
+    emitter_dp.MOV32_REG(REG_64::R8, REG_64::R14);
+    emitter_dp.MOV64_FROM_MEM(REG_64::R9, REG_64::R15);
+#else
+    emitter_dp.MOV32_REG(REG_64::RDI, REG_64::R12);
+    emitter_dp.MOV32_REG(REG_64::RSI, REG_64::R13);
+    emitter_dp.MOV32_REG(REG_64::RDX, REG_64::R14);
+    emitter_dp.MOV64_FROM_MEM(REG_64::RCX, REG_64::R15);
 #endif
+
+    emitter_dp.SUB64_REG_IMM(0x20, REG_64::RSP);
+    emitter_dp.load_addr((uint64_t)&jit_draw_pixel_func, REG_64::RAX);
+    emitter_dp.MOV64_FROM_MEM(REG_64::RAX, REG_64::RAX);
+    emitter_dp.CALL_INDIR(REG_64::RAX);
+    emitter_dp.ADD64_REG_IMM(0x20, REG_64::RSP);
+
+    emitter_dp.POP(REG_64::R15);
+    emitter_dp.POP(REG_64::R14);
+    emitter_dp.POP(REG_64::R13);
+    emitter_dp.POP(REG_64::R12);
+    emitter_dp.POP(REG_64::RBP);
+    emitter_dp.RET();
+
+    jit_draw_pixel_prologue = (GSDrawPixelPrologue)jit_draw_pixel_heap.
+            insert_block(~0ULL, &jit_draw_pixel_block)->code_start;
 }
 
 void GraphicsSynthesizerThread::render_point()
@@ -2473,8 +2482,8 @@ void GraphicsSynthesizerThread::render_half_triangle(float x0, float x1, int y0,
                     v = (uint32_t) vtx.v;
                 }
 #ifdef GS_JIT
-                jit_tex_lookup(u, v, &tex_info);
-                jit_draw_pixel(x * 16, y * 16, (uint32_t)vtx.z, tex_info.tex_color);
+                jit_tex_lookup_prologue(u, v, &tex_info);
+                jit_draw_pixel_prologue(x * 16, y * 16, (uint32_t)vtx.z, tex_info.tex_color);
 #else
                 tex_lookup(u, v, tex_info);
                 draw_pixel(x * 16, y * 16, (uint32_t)vtx.z, tex_info.tex_color);
@@ -2484,7 +2493,7 @@ void GraphicsSynthesizerThread::render_half_triangle(float x0, float x1, int y0,
             else
             {
 #ifdef GS_JIT
-                jit_draw_pixel(x * 16, y * 16, (uint32_t)vtx.z, tex_info.vtx_color);
+                jit_draw_pixel_prologue(x * 16, y * 16, (uint32_t)vtx.z, tex_info.vtx_color);
 #else
                 draw_pixel(x * 16, y * 16, (uint32_t)vtx.z, tex_info.vtx_color);
 #endif
@@ -2700,8 +2709,8 @@ void GraphicsSynthesizerThread::render_triangle()
                                     v = (uint32_t) temp_v;
                                 }
 #ifdef GS_JIT
-                                jit_tex_lookup(u, v, &tex_info);
-                                jit_draw_pixel(x, y, (uint32_t)z, tex_info.tex_color);
+                                jit_tex_lookup_prologue(u, v, &tex_info);
+                                jit_draw_pixel_prologue(x, y, (uint32_t)z, tex_info.tex_color);
 #else
                                 tex_lookup(u, v, tex_info);
                                 draw_pixel(x, y, (uint32_t)z, tex_info.tex_color);
@@ -2710,7 +2719,7 @@ void GraphicsSynthesizerThread::render_triangle()
                             else
                             {
 #ifdef GS_JIT
-                                jit_draw_pixel(x, y, (uint32_t)z, tex_info.vtx_color);
+                                jit_draw_pixel_prologue(x, y, (uint32_t)z, tex_info.vtx_color);
 #else
                                 draw_pixel(x, y, (uint32_t)z, tex_info.vtx_color);
 #endif
@@ -2800,7 +2809,7 @@ void GraphicsSynthesizerThread::render_sprite()
                     pix_v = (pix_t * tex_info.tex_height) * 16.0;
                     pix_u = (pix_s * tex_info.tex_width) * 16.0;
 #ifdef GS_JIT
-                    jit_tex_lookup(pix_u, pix_v, &tex_info);
+                    jit_tex_lookup_prologue(pix_u, pix_v, &tex_info);
 #else
                     tex_lookup(pix_u, pix_v, tex_info);
 #endif
@@ -2808,14 +2817,14 @@ void GraphicsSynthesizerThread::render_sprite()
                 else
                 {
 #ifdef GS_JIT
-                    jit_tex_lookup(pix_u >> 16, pix_v >> 16, &tex_info);
+                    jit_tex_lookup_prologue(pix_u >> 16, pix_v >> 16, &tex_info);
 #else
                     tex_lookup(pix_u >> 16, pix_v >> 16, tex_info);
 #endif
                 }
 
 #ifdef GS_JIT
-                jit_draw_pixel(x, y, v2.z, tex_info.tex_color);
+                jit_draw_pixel_prologue(x, y, v2.z, tex_info.tex_color);
 #else
                 draw_pixel(x, y, v2.z, tex_info.tex_color);
 #endif
@@ -2823,7 +2832,7 @@ void GraphicsSynthesizerThread::render_sprite()
             else
             {
 #ifdef GS_JIT
-                jit_draw_pixel(x, y, v2.z, tex_info.vtx_color);
+                jit_draw_pixel_prologue(x, y, v2.z, tex_info.vtx_color);
 #else
                 draw_pixel(x, y, v2.z, tex_info.vtx_color);
 #endif
@@ -2991,11 +3000,15 @@ void GraphicsSynthesizerThread::write_HWREG(uint64_t data)
                 unpack_PSMCT24(data, i, true);
                 break;
         }
-        if (TRXPOS.int_dest_x - TRXPOS.dest_x == TRXREG.width)
+        if (pixels_transferred % TRXREG.width == 0)
         {
             TRXPOS.int_dest_x = TRXPOS.dest_x;
             TRXPOS.int_dest_y++;
         }
+
+        //Coordinates wrap at 2048 pixels
+        TRXPOS.int_dest_x %= 2048;
+        TRXPOS.int_dest_y %= 2048;
     }
 
     int max_pixels = TRXREG.width * TRXREG.height;
@@ -3048,6 +3061,11 @@ uint128_t GraphicsSynthesizerThread::local_to_host()
         case 0x1B:
             ppd = 8;
             break;
+        //PSMZ32
+        case 0x30:
+            ppd = 2;
+            break;
+        //PSMZ24
         case 0x31:
             ppd = 1; //Does it all in one go
             break;
@@ -3102,6 +3120,12 @@ uint128_t GraphicsSynthesizerThread::local_to_host()
                     pixels_transferred++;
                     TRXPOS.int_source_x++;
                     break;
+                case 0x30:
+                    data |= (uint64_t)(read_PSMCT32Z_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                        TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xFFFFFFFF) << (i * 32);
+                    pixels_transferred++;
+                    TRXPOS.int_source_x++;
+                    break;
                 case 0x31:
                     data = pack_PSMCT24(true);
                     break;
@@ -3111,11 +3135,15 @@ uint128_t GraphicsSynthesizerThread::local_to_host()
             }
 
 
-            if (TRXPOS.int_source_x - TRXPOS.source_x == TRXREG.width)
+            if (pixels_transferred % TRXREG.width == 0)
             {
                 TRXPOS.int_source_x = TRXPOS.source_x;
                 TRXPOS.int_source_y++;
             }
+
+            //Coordinates wrap at 2048 pixels
+            TRXPOS.int_source_x %= 2048;
+            TRXPOS.int_source_y %= 2048;
         }
 
         return_data._u64[datapart] = data;
@@ -3190,23 +3218,32 @@ uint64_t GraphicsSynthesizerThread::pack_PSMCT24(bool z_format)
         {
             if (z_format)
             {
-                PSMCT24_color = (uint64_t)(read_PSMCT32Z_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                PSMCT24_color |= (uint64_t)(read_PSMCT32Z_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                     TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xFFFFFF) << PSMCT24_unpacked_count;
             }
             else
             {
-                PSMCT24_color = (uint64_t)(read_PSMCT32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                PSMCT24_color |= (uint64_t)(read_PSMCT32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                     TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xFFFFFF) << PSMCT24_unpacked_count;
             }
             PSMCT24_unpacked_count += 24;
             TRXPOS.int_source_x++;
             pixels_transferred++;
 
-            if (TRXPOS.int_source_x - TRXPOS.source_x == TRXREG.width)
+            //If this is the last read, reg updating is handled by the main loop
+            //Otherwise we need to do it here
+            if (data_in_output < 40)
             {
-                TRXPOS.int_source_x = TRXPOS.source_x;
-                TRXPOS.int_source_y++;
+                if (pixels_transferred % TRXREG.width == 0)
+                {
+                    TRXPOS.int_source_x = TRXPOS.source_x;
+                    TRXPOS.int_source_y++;
+                }
             }
+
+            //Coordinates wrap at 2048 pixels
+            TRXPOS.int_source_x %= 2048;
+            TRXPOS.int_source_y %= 2048;
         }
     }
 
@@ -3221,36 +3258,44 @@ void GraphicsSynthesizerThread::local_to_local()
     printf("Source: $%08X Dest: $%08X\n", BITBLTBUF.source_base, BITBLTBUF.dest_base);
     int max_pixels = TRXREG.width * TRXREG.height;
 
-    uint16_t start_x = 0, start_y = 0;
+    uint16_t dest_start_x = 0, src_start_x = 0;
     int x_step = 0, y_step = 0;
 
     switch (TRXPOS.trans_order)
     {
         case 0x00:
             //Upper-left to bottom-right
-            start_x = TRXPOS.int_dest_x = TRXPOS.dest_x;
-            start_y = TRXPOS.int_dest_y = TRXPOS.dest_y;
+            dest_start_x = TRXPOS.int_dest_x = TRXPOS.dest_x;
+            src_start_x = TRXPOS.int_source_x = TRXPOS.source_x;
+            TRXPOS.int_dest_y = TRXPOS.dest_y;
+            TRXPOS.int_source_y = TRXPOS.source_y;
             x_step = 1;
             y_step = 1;
             break;
         case 0x01:
             //Bottom-left to upper-right
-            start_x = TRXPOS.int_dest_x = TRXPOS.dest_x;
-            start_y = TRXPOS.int_dest_y = TRXPOS.dest_y + TRXREG.height - 1;
+            dest_start_x = TRXPOS.int_dest_x = TRXPOS.dest_x;
+            src_start_x = TRXPOS.int_source_x = TRXPOS.source_x;
+            TRXPOS.int_dest_y = TRXPOS.dest_y + TRXREG.height - 1;
+            TRXPOS.int_source_y = TRXPOS.source_y + TRXREG.height - 1;
             x_step = 1;
             y_step = -1;
             break;
         case 0x02:
             //Upper-right to bottom-left
-            start_x = TRXPOS.int_dest_x = TRXPOS.dest_x + TRXREG.width - 1;
-            start_y = TRXPOS.int_dest_y = TRXPOS.dest_y;
+            dest_start_x = TRXPOS.int_dest_x = TRXPOS.dest_x + TRXREG.width - 1;
+            src_start_x = TRXPOS.int_source_x = TRXPOS.source_x + TRXREG.width - 1;
+            TRXPOS.int_dest_y = TRXPOS.dest_y;
+            TRXPOS.int_source_y = TRXPOS.source_y;
             x_step = -1;
             y_step = 1;
             break;
         case 0x03:
             //Bottom-right to upper-left
-            start_x = TRXPOS.int_dest_x = TRXPOS.dest_x + TRXREG.width - 1;
-            start_y = TRXPOS.int_dest_y = TRXPOS.dest_y + TRXREG.height - 1;
+            dest_start_x = TRXPOS.int_dest_x = TRXPOS.dest_x + TRXREG.width - 1;
+            src_start_x = TRXPOS.int_source_x = TRXPOS.source_x + TRXREG.width - 1;
+            TRXPOS.int_dest_y = TRXPOS.dest_y + TRXREG.height - 1;
+            TRXPOS.int_source_y = TRXPOS.source_y + TRXREG.height - 1;
             x_step = -1;
             y_step = -1;
             break;
@@ -3275,6 +3320,10 @@ void GraphicsSynthesizerThread::local_to_local()
             case 0x14:
                 data = read_PSMCT4_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                                          TRXPOS.int_source_x, TRXPOS.int_source_y);
+                break;
+            case 0x2C:
+                data = read_PSMCT32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                    TRXPOS.int_source_x, TRXPOS.int_source_y) >> 28;
                 break;
             case 0x30:
             case 0x31:
@@ -3330,17 +3379,23 @@ void GraphicsSynthesizerThread::local_to_local()
         }
 
         pixels_transferred++;
-        TRXPOS.int_source_x++;
+        TRXPOS.int_source_x += x_step;
         TRXPOS.int_dest_x += x_step;
 
         if (pixels_transferred % TRXREG.width == 0)
         {
-            TRXPOS.int_source_x = TRXPOS.source_x;
-            TRXPOS.int_source_y++;
+            TRXPOS.int_source_x = src_start_x;
+            TRXPOS.int_source_y += y_step;
 
-            TRXPOS.int_dest_x = start_x;
+            TRXPOS.int_dest_x = dest_start_x;
             TRXPOS.int_dest_y += y_step;
         }
+
+        //Coordinates wrap at 2048 pixels
+        TRXPOS.int_source_x %= 2048;
+        TRXPOS.int_source_y %= 2048;
+        TRXPOS.int_dest_x %= 2048;
+        TRXPOS.int_dest_y %= 2048;
     }
     pixels_transferred = 0;
     TRXDIR = 3;
@@ -3589,7 +3644,7 @@ void GraphicsSynthesizerThread::tex_lookup_int(int16_t u, int16_t v, TexLookupIn
             break;
         case 3:
             //Mask should only apply to integer component
-            u = (u & (current_ctx->clamp.min_u | 0xF)) | current_ctx->clamp.max_u;
+            u = (u & (current_ctx->clamp.min_u >> info.mipmap_level)) | (current_ctx->clamp.max_u >> info.mipmap_level);
             break;
     }
     switch (current_ctx->clamp.wrap_t)
@@ -3610,7 +3665,7 @@ void GraphicsSynthesizerThread::tex_lookup_int(int16_t u, int16_t v, TexLookupIn
                 v = (current_ctx->clamp.min_v >> info.mipmap_level);
             break;
         case 3:
-            v = (v & (current_ctx->clamp.min_v | 0xF)) | current_ctx->clamp.max_v;
+            v = (v & (current_ctx->clamp.min_v >> info.mipmap_level)) | (current_ctx->clamp.max_v >> info.mipmap_level);
             break;
     }
 
@@ -3765,33 +3820,45 @@ void GraphicsSynthesizerThread::tex_lookup_int(int16_t u, int16_t v, TexLookupIn
     }
 }
 
-_noinline(void) GraphicsSynthesizerThread::jit_tex_lookup(int16_t u, int16_t v, TexLookupInfo *info)
+void GraphicsSynthesizerThread::recompile_tex_lookup_prologue()
 {
-#ifdef _MSC_VER
-    jit_tex_lookup_asm(jit_tex_lookup_func, u, v, info);
-#else
-    __asm__(
-        "pushq %%r12\n\t"
-        "pushq %%r13\n\t"
-        "pushq %%r14\n\t"
-        "pushq %%r15\n\t"
-        "subq $8, %%rsp\n\t"
-        "xor %%r12, %%r12\n\t"
-        "xor %%r13, %%r13\n\t"
-        "mov %0, %%r12w\n\t"
-        "mov %1, %%r13w\n\t"
-        "mov %2, %%r14\n\t"
-        "callq *%3\n\t"
-        "addq $8, %%rsp\n\t"
-        "popq %%r15\n\t"
-        "popq %%r14\n\t"
-        "popq %%r13\n\t"
-        "popq %%r12\n\t"
-                :
-                : "r" (u), "r" (v), "r" (info), "r" (jit_tex_lookup_func)
+    jit_tex_lookup_block.clear();
 
-    );
+    emitter_tex.PUSH(REG_64::RBP);
+    emitter_tex.MOV64_MR(REG_64::RSP, REG_64::RBP);
+    emitter_tex.PUSH(REG_64::R12);
+    emitter_tex.PUSH(REG_64::R13);
+    emitter_tex.PUSH(REG_64::R14);
+    emitter_tex.PUSH(REG_64::R15);
+
+    emitter_tex.XOR64_REG(REG_64::R12, REG_64::R12);
+    emitter_tex.XOR64_REG(REG_64::R13, REG_64::R13);
+
+#ifdef _WIN32
+    emitter_tex.MOV16_REG(REG_64::RCX, REG_64::R12);
+    emitter_tex.MOV16_REG(REG_64::RDX, REG_64::R13);
+    emitter_tex.MOV64_MR(REG_64::R8, REG_64::R14);
+#else
+    emitter_tex.MOV16_REG(REG_64::RDI, REG_64::R12);
+    emitter_tex.MOV16_REG(REG_64::RSI, REG_64::R13);
+    emitter_tex.MOV64_MR(REG_64::RDX, REG_64::R14);
 #endif
+
+    emitter_tex.SUB64_REG_IMM(0x20, REG_64::RSP);
+    emitter_tex.load_addr((uint64_t)&jit_tex_lookup_func, REG_64::RAX);
+    emitter_tex.MOV64_FROM_MEM(REG_64::RAX, REG_64::RAX);
+    emitter_tex.CALL_INDIR(REG_64::RAX);
+    emitter_tex.ADD64_REG_IMM(0x20, REG_64::RSP);
+
+    emitter_tex.POP(REG_64::R15);
+    emitter_tex.POP(REG_64::R14);
+    emitter_tex.POP(REG_64::R13);
+    emitter_tex.POP(REG_64::R12);
+    emitter_tex.POP(REG_64::RBP);
+    emitter_tex.RET();
+
+    jit_tex_lookup_prologue = (GSTexLookupPrologue)jit_tex_lookup_heap.
+            insert_block(~0ULL, &jit_tex_lookup_block)->code_start;
 }
 
 void GraphicsSynthesizerThread::clut_lookup(uint8_t entry, RGBAQ_REG &tex_color)
@@ -4285,9 +4352,6 @@ GSPixelJitBlockRecord* GraphicsSynthesizerThread::recompile_draw_pixel(uint64_t 
 
     emitter_dp.set_jump_dest(do_not_update_rgba);
     jit_epilogue_draw_pixel();
-    jit_draw_pixel_block.print_block();
-    jit_draw_pixel_block.print_literal_pool();
-    //jit_draw_pixel_block.set_current_block_rx();
     return jit_draw_pixel_heap.insert_block(state, &jit_draw_pixel_block);
 }
 
@@ -4367,6 +4431,7 @@ void GraphicsSynthesizerThread::recompile_alpha_test()
 
 void GraphicsSynthesizerThread::recompile_depth_test()
 {
+    //If depth test is set to NEVER, don't draw anything
     if (current_ctx->test.depth_method == 0)
     {
         jit_epilogue_draw_pixel();
@@ -4465,16 +4530,24 @@ void GraphicsSynthesizerThread::recompile_alpha_blend()
     printf("Alpha blend: %d %d %d %d\n", current_ctx->alpha.spec_A, current_ctx->alpha.spec_B,
            current_ctx->alpha.spec_C, current_ctx->alpha.spec_D);
 
+    uint8_t* pabe_fail_end = nullptr;
+
+    //Per-pixel alpha blending. If alpha is less than 0x80, do not perform alpha blending.
     if (PABE)
     {
-        //If alpha < 0x80, do not perform alpha blending
         emitter_dp.MOV64_MR(R15, RAX);
         emitter_dp.SHR64_REG_IMM(48, RAX);
         emitter_dp.TEST32_EAX(0x80);
 
         uint8_t* pabe_success = emitter_dp.JCC_NEAR_DEFERRED(ConditionCode::NE);
 
-        jit_epilogue_draw_pixel();
+        //Failure condition for PABE - set color as if alpha blending were disabled.
+        //R14 = color in RGBA32 format
+        emitter_dp.MOVQ_TO_XMM(R15, XMM0);
+        emitter_dp.PACKUSWB(XMM0, XMM0);
+        emitter_dp.MOVD_FROM_XMM(XMM0, R14);
+
+        pabe_fail_end = emitter_dp.JMP_NEAR_DEFERRED();
 
         emitter_dp.set_jump_dest(pabe_success);
     }
@@ -4483,22 +4556,24 @@ void GraphicsSynthesizerThread::recompile_alpha_blend()
     //Note that colors are 16-bit format so that we can handle overflows/underflows
     uint32_t fb_pixel_addr = 0xD8;
 
+    //Convert 8-bit frame color components into 16-bit
     emitter_dp.MOV32_FROM_MEM(RBP, RAX, fb_pixel_addr);
-
-    //Convert 32-bit framebuffer color to 64-bit
     emitter_dp.MOVD_TO_XMM(RAX, XMM4);
     emitter_dp.PMOVZX8_TO_16(XMM4, XMM4);
 
     switch (current_ctx->alpha.spec_A)
     {
         case 0:
+            //Source color
             emitter_dp.MOVQ_TO_XMM(R15, XMM0);
             break;
         case 1:
+            //Frame color
             emitter_dp.MOVAPS_REG(XMM4, XMM0);
             break;
         case 2:
         case 3:
+            //Zero
             emitter_dp.XORPS(XMM0, XMM0);
             break;
     }
@@ -4506,24 +4581,29 @@ void GraphicsSynthesizerThread::recompile_alpha_blend()
     switch (current_ctx->alpha.spec_B)
     {
         case 0:
+            //Source color
             emitter_dp.MOVQ_TO_XMM(R15, XMM1);
             break;
         case 1:
+            //Frame color
             emitter_dp.MOVAPS_REG(XMM4, XMM1);
             break;
         case 2:
         case 3:
-            //Do nothing. We can optimize out the subtraction in the alpha blending operation
+            //Zero. We can optimize by not emitting a sub in the blending operation.
             break;
     }
 
     switch (current_ctx->alpha.spec_C)
     {
         case 0:
+            //Source alpha
             emitter_dp.MOV64_MR(R15, RAX);
             emitter_dp.SAR64_REG_IMM(48, RAX);
             break;
         case 1:
+            //Frame alpha
+            //If the frame format is RGB24, only use 0x80 as alpha.
             if (!(current_ctx->frame.format & 0x1))
                 emitter_dp.SAR64_REG_IMM(48, RAX);
             else
@@ -4531,6 +4611,7 @@ void GraphicsSynthesizerThread::recompile_alpha_blend()
             break;
         case 2:
         case 3:
+            //Fixed alpha
             emitter_dp.MOV32_REG_IMM(current_ctx->alpha.fixed_alpha, RAX);
             break;
     }
@@ -4542,13 +4623,16 @@ void GraphicsSynthesizerThread::recompile_alpha_blend()
     switch (current_ctx->alpha.spec_D)
     {
         case 0:
+            //Source color
             emitter_dp.MOVQ_TO_XMM(R15, XMM3);
             break;
         case 1:
+            //Frame color
             emitter_dp.MOVAPS_REG(XMM4, XMM3);
             break;
         case 2:
         case 3:
+            //Zero - we can optimize by not emitting an ADD instruction for D
             break;
     }
 
@@ -4556,38 +4640,43 @@ void GraphicsSynthesizerThread::recompile_alpha_blend()
 
     //color component = (((A - B) * C) >> 7) + D
     if (current_ctx->alpha.spec_B < 2)
-    {
-        //TODO: fix clamping in cases where (A - B) * C >= 0x8000 (with normal clamping, this goes to 0)
+    {   
+        //Calculate ((A - B) * C) >> 7
+        //BUG: If (A - B) * C >= +0x8000, this gets treated as negative and clamped to black.
         emitter_dp.PSUBW(XMM1, XMM0);
         emitter_dp.PMULLW(XMM2, XMM0);
         emitter_dp.PSRAW(7, XMM0);
     }
     else
     {
+        //If B is 0, the calculation simplifies to (A * C) >> 7
         emitter_dp.PMULLW(XMM2, XMM0);
         emitter_dp.PSRLW(7, XMM0);
     }
 
+    //If D is not 0, add it to the blend result
     if (current_ctx->alpha.spec_D < 2)
         emitter_dp.PADDW(XMM3, XMM0);
 
     //Clamp color
     if (!COLCLAMP)
     {
-        //Extract the lower 8 bits before packing
+        //Extract the lower 8 bits from the blend result before packing
         emitter_dp.load_addr((uint64_t)&and_const, RAX);
         emitter_dp.PAND_XMM_FROM_MEM(RAX, XMM0);
     }
 
+    //Convert 16-bit color components to 8-bit and clamp to a 0-0xFF range
     emitter_dp.PACKUSWB(XMM0, XMM0);
 
-    //Return color in R14
+    //Return color in R14. We need to replace the alpha component with the source alpha.
     emitter_dp.MOVD_FROM_XMM(XMM0, R14);
-
-    //Append alpha to color
     emitter_dp.AND32_REG_IMM(0xFFFFFF, R14);
     emitter_dp.SHL32_REG_IMM(24, RAX);
     emitter_dp.OR32_REG(RAX, R14);
+
+    if (PABE)
+        emitter_dp.set_jump_dest(pabe_fail_end);
 }
 
 void GraphicsSynthesizerThread::jit_call_func(Emitter64& emitter, uint64_t addr)
@@ -4663,17 +4752,13 @@ GSTextureJitBlockRecord* GraphicsSynthesizerThread::recompile_tex_lookup(uint64_
         emitter_tex.load_addr((uint64_t)&current_ctx->clamp.min_u, RDX);
         emitter_tex.MOV32_FROM_MEM(RDX, RDX);
         emitter_tex.AND32_REG_IMM(0xFFFF, RDX);
-
-        if (current_ctx->clamp.wrap_s == 0x2)
-            emitter_tex.SHR32_CL(RDX);
+        emitter_tex.SHR32_CL(RDX);
 
         emitter_tex.XOR32_REG(RBX, RBX);
         emitter_tex.load_addr((uint64_t)&current_ctx->clamp.max_u, RBX);
         emitter_tex.MOV32_FROM_MEM(RBX, RBX);
         emitter_tex.AND32_REG_IMM(0xFFFF, RBX);
-
-        if (current_ctx->clamp.wrap_s == 0x2)
-            emitter_tex.SHR32_CL(RBX);
+        emitter_tex.SHR32_CL(RBX);
     }
 
     if (current_ctx->clamp.wrap_t >= 0x2)
@@ -4682,16 +4767,13 @@ GSTextureJitBlockRecord* GraphicsSynthesizerThread::recompile_tex_lookup(uint64_
         emitter_tex.load_addr((uint64_t)&current_ctx->clamp.min_v, R8);
         emitter_tex.MOV32_FROM_MEM(R8, R8);
         emitter_tex.AND32_REG_IMM(0xFFFF, R8);
-        if (current_ctx->clamp.wrap_t == 0x2)
-            emitter_tex.SHR32_CL(R8);
+        emitter_tex.SHR32_CL(R8);
 
         emitter_tex.XOR32_REG(R15, R15);
         emitter_tex.load_addr((uint64_t)&current_ctx->clamp.max_v, R15);
         emitter_tex.MOV32_FROM_MEM(R15, R15);
         emitter_tex.AND32_REG_IMM(0xFFFF, R15);
-
-        if (current_ctx->clamp.wrap_t == 0x2)
-            emitter_tex.SHR32_CL(R15);
+        emitter_tex.SHR32_CL(R15);
     }
 
     //Clamp u/v (s/t) appropriately
@@ -4727,8 +4809,7 @@ GSTextureJitBlockRecord* GraphicsSynthesizerThread::recompile_tex_lookup(uint64_
         }
             break;
         case 0x3:
-            //u = (u & (min_u | 0xF)) | max_u
-            emitter_tex.OR32_REG_IMM(0xF, RDX);
+            //u = (u & min_u) | max_u
             emitter_tex.AND32_REG(RDX, R12);
             emitter_tex.OR32_REG(RBX, R12);
             break;
@@ -4768,8 +4849,7 @@ GSTextureJitBlockRecord* GraphicsSynthesizerThread::recompile_tex_lookup(uint64_
         }
             break;
         case 0x3:
-            //v = (v & (min_v | 0xF)) | max_v
-            emitter_tex.OR32_REG_IMM(0xF, R8);
+            //v = (v & min_v) | max_v
             emitter_tex.AND32_REG(R8, R13);
             emitter_tex.OR32_REG(R15, R13);
             break;
@@ -5001,9 +5081,6 @@ GSTextureJitBlockRecord* GraphicsSynthesizerThread::recompile_tex_lookup(uint64_
     emitter_tex.POP(RBP);
     emitter_tex.RET();
 
-    jit_tex_lookup_block.print_block();
-    jit_tex_lookup_block.print_literal_pool();
-    //jit_tex_lookup_block.set_current_block_rx();
     return jit_tex_lookup_heap.insert_block(state, &jit_tex_lookup_block);
 }
 
@@ -5143,6 +5220,7 @@ void GraphicsSynthesizerThread::load_state(ifstream *state)
     state->read((char*)&TRXDIR, sizeof(TRXDIR));
     state->read((char*)&BUSDIR, sizeof(BUSDIR));
     state->read((char*)&pixels_transferred, sizeof(pixels_transferred));
+    state->read((char*)&dither_mtx, sizeof(dither_mtx));
 
     state->read((char*)&PSMCT24_color, sizeof(PSMCT24_color));
     state->read((char*)&PSMCT24_unpacked_count, sizeof(PSMCT24_unpacked_count));
@@ -5191,6 +5269,7 @@ void GraphicsSynthesizerThread::save_state(ofstream *state)
     state->write((char*)&TRXDIR, sizeof(TRXDIR));
     state->write((char*)&BUSDIR, sizeof(BUSDIR));
     state->write((char*)&pixels_transferred, sizeof(pixels_transferred));
+    state->write((char*)&dither_mtx, sizeof(dither_mtx));
 
     state->write((char*)&PSMCT24_color, sizeof(PSMCT24_color));
     state->write((char*)&PSMCT24_unpacked_count, sizeof(PSMCT24_unpacked_count));
