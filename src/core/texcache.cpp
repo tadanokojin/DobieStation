@@ -48,7 +48,8 @@ void TextureCache::flush()
 Texture::Texture(TEX0 tex0, TEXA_REG texa) :
     m_tex0(tex0), m_texa(texa)
 {
-    m_data = std::make_unique<uint32_t[]>(m_tex0.tex_width * m_tex0.tex_height);
+    m_size = (size_t)m_tex0.tex_width * (size_t)m_tex0.tex_height;
+    m_data = std::make_unique<uint32_t[]>(m_size);
 }
 
 bool Texture::map(uint32_t** buff)
@@ -65,25 +66,31 @@ void Texture::unmap()
 
 bool Texture::save(std::string name)
 {
-    auto width = m_tex0.tex_width;
-    auto height = m_tex0.tex_height;
+    const size_t width = m_tex0.tex_width;
+    const size_t height = m_tex0.tex_height;
 
     std::vector<unsigned char> image(width * height * 4);
     std::vector<unsigned char> image_alpha(width * height * 4);
 
     for (auto y = 0; y < height; y++)
-        for (auto x = 0; x < width; x++)
-        {
-            image[4 * width * y + 4 * x + 0] = m_data[width * y + x];
-            image[4 * width * y + 4 * x + 1] = m_data[width * y + x] >> 8;
-            image[4 * width * y + 4 * x + 2] = m_data[width * y + x] >> 16;
-            image[4 * width * y + 4 * x + 3] = 255;
+    for (auto x = 0; x < width; x++)
+    {
+        const size_t y_offset = width * 4 * y;
+        const size_t x_offset = (size_t)x * 4;
 
-            image_alpha[4 * width * y + 4 * x + 0] = m_data[width * y + x] >> 24;
-            image_alpha[4 * width * y + 4 * x + 1] = m_data[width * y + x] >> 24;
-            image_alpha[4 * width * y + 4 * x + 2] = m_data[width * y + x] >> 24;
-            image_alpha[4 * width * y + 4 * x + 3] = 255;
-        }
+        const size_t image_index = y_offset + x_offset;
+        const size_t data_index = width * y + x;
+
+        image[image_index + 0] = m_data[data_index];
+        image[image_index + 1] = m_data[data_index] >> 8;
+        image[image_index + 2] = m_data[data_index] >> 16;
+        image[image_index + 3] = 255;
+
+        image_alpha[image_index + 0] = m_data[data_index] >> 24;
+        image_alpha[image_index + 1] = m_data[data_index] >> 24;
+        image_alpha[image_index + 2] = m_data[data_index] >> 24;
+        image_alpha[image_index + 3] = 255;
+    }
 
     std::stringstream ss;
 

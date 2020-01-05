@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
+#include <map>
 #include <string>
 #include <sstream>
 #include "gscontext.hpp"
@@ -102,11 +103,20 @@ struct Texture
     TEX0 m_tex0;
     TEXA_REG m_texa;
 
+    size_t m_size;
+
+    bool m_valid{ false };
+
     Texture() = delete;
     Texture(TEX0 tex0, TEXA_REG texa);
 
     bool map(uint32_t** buff);
     void unmap();
+
+    void validate()   { m_valid = true;  };
+    void invalidate() { m_valid = false; };
+
+    bool valid() const noexcept { return m_valid; };
 
     bool save(std::string name);
 };

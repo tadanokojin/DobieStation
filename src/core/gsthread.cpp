@@ -1504,7 +1504,11 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
 {
     Texture* texture = tex_cache.lookup(tex0, texa);
 
-    // lookup miss
+    // TODO
+    // This isn't very obvious but the lookup will return nullptr on miss
+    // I have to do this because I need to read the texture here
+    // Otherwise I'd read it out of gs memory in the texture cache itself
+    // However, currently most of our state is in gsthread
     if (texture == nullptr)
     {
         auto width = tex0.tex_width;
