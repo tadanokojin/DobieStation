@@ -1,9 +1,54 @@
 #include "texcache.hpp"
+#include "emulator.hpp"
+
+// Some potential edge cases
+//
+// Raw Danger, Grand Turismo games, Steambot Chronicles, etc
+// will read a 32 bit texture as packed 8bit by gs page up to 4x per page
+// and write it back to the same memory region. GS cache should mean
+// that any writes are opaque to subsequent reads until the page break
+//
+// Haunting Ground, Matrix, Crash Twinsanity, Need for Speed U2, MC3, Transformers etc
+// will read a 32 bit texture as 16 bit to split the rg and ba channels into
+// 8 x height * 2 columns which they will texture map into a target. Transformers and
+// MC3 do this by page. Twinsanity and Matrix do it in 2 parts (not always by exactly half).
+// Others like HG do it on the entire framebuffer.
+//
+// Armored Core: Last Raven will local to local the framebuffer into an area of memory
+// that will be used as the PCRCT read area
+//
+// Virtua Fighter 2, Burnout Games, Jak 3, etc
+// will render directly into the clut which means the clut and any textures attached
+// to it need to be invalidated
+//
+// Wallace and Gromit and Thrillville wrap around GS memory in FMVs
+//
+// Games by VIS and Superman Returns clear textures by writing a really tall rectangle
+// with the FBW set 1
+//
+// Dark Cloud 2 will write to all of GS memory from the EE on init
+//
+// Many games will copy or read the alpha channel of 32/24 bit textures using the 8H format
 
 void TextureCache::add_texture(Texture* tex)
 {
-    m_cached_tex.insert({ lookup_t(tex->m_tex0, tex->m_texa), tex });
     misses_this_frame++;
+
+    CacheRegion region = {};
+    region.base = tex->base();
+    region.psm = tex->format();
+    region.width = tex->buffer_width();
+    region.rect = tex->rect();
+
+    auto start_page = region.start_page();
+    auto end_page = region.end_page();
+
+    for (auto i = start_page; i < end_page; i++)
+    {
+        printf("[TEXCACHE] insert into page %d ($%x)\n", i, tex->m_tex0.texture_base);
+        m_pages[i].push_back(tex);
+    }
+    m_cached_tex.insert({ lookup_t(tex->m_tex0, tex->m_texa), tex });
 }
 
 // Attempts to find a texture in the cache
@@ -34,6 +79,23 @@ Texture* TextureCache::lookup(TEX0 tex0, TEXA_REG texa)
     return nullptr;
 }
 
+void TextureCache::invalidate(CacheRegion& region)
+{
+    printf("[TEXCACHE] invalidate!\n");
+    printf("\tformat: $%x\n", region.psm);
+    printf("\tbase:   $%x\n", region.base);
+    printf("\twidth:  %d\n", region.width);
+    printf("\t%d, %d -> %d, %d\n", region.rect.x, region.rect.y, region.rect.z, region.rect.w);
+    printf("\tpages: %d\n", region.end_page() - region.start_page());
+
+    for (auto i = region.start_page(); i < region.end_page(); i++)
+    {
+        printf("\tInvalidating page %d (%d textures)\n", i, m_pages[i].size());
+        for (auto& tex : m_pages[i])
+            tex->invalidate();
+    }
+}
+
 // flushes the entire cache
 void TextureCache::flush()
 {
@@ -41,6 +103,9 @@ void TextureCache::flush()
     // smart pointers
     for (const auto& entry : m_cached_tex)
         delete entry.second;
+
+    for (auto& page_textures : m_pages)
+        page_textures.clear();
 
     m_cached_tex.clear();
 }

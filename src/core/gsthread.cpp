@@ -1403,6 +1403,37 @@ void GraphicsSynthesizerThread::render_primitive()
             render_sprite();
             break;
     }
+
+    // invalidate the scissor area
+    Rect rect = {};
+    rect.x = current_ctx->scissor.x1 >> 4;
+    rect.y = current_ctx->scissor.y1 >> 4;
+    rect.z = current_ctx->scissor.x2 >> 4;
+    rect.w = current_ctx->scissor.y2 >> 4;
+
+    // don't invalidate fb nop
+    if (!current_ctx->frame.no_update())
+    {
+        CacheRegion region = {};
+        region.base = current_ctx->frame.base_pointer;
+        region.psm = current_ctx->frame.format;
+        region.width = current_ctx->frame.width;
+        region.rect = rect;
+
+        tex_cache.invalidate(region);
+    }
+
+    // don't invalidate z nop
+    if (!current_ctx->zbuf.no_update)
+    {
+        CacheRegion region = {};
+        region.base = current_ctx->zbuf.base_pointer;
+        region.psm = current_ctx->zbuf.format;
+        region.width = current_ctx->frame.width;
+        region.rect = rect;
+
+        tex_cache.invalidate(region);
+    }
 }
 
 bool GraphicsSynthesizerThread::depth_test(int32_t x, int32_t y, uint32_t z)
@@ -1509,7 +1540,7 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
     // I have to do this because I need to read the texture here
     // Otherwise I'd read it out of gs memory in the texture cache itself
     // However, currently most of our state is in gsthread
-    if (texture == nullptr)
+    if (texture == nullptr || texture->invalid())
     {
         auto width = tex0.tex_width;
         auto height = tex0.tex_height;
@@ -1519,7 +1550,12 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
         // 1. results of swizzling
         // 2. results of alpha expansion
         // 3. results of clut conversion
-        texture = new Texture(tex0, texa);
+        if (!texture)
+        {
+            texture = new Texture(tex0, texa);
+            tex_cache.add_texture(texture);
+        }
+
         uint32_t* buff = nullptr;
         uint32_t color = 0;
 
@@ -1608,9 +1644,9 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
         }
 
         texture->unmap();
+        texture->validate();
 
         //texture->save("input");
-        tex_cache.add_texture(texture);
     }
 
     return texture;
@@ -3015,14 +3051,27 @@ void GraphicsSynthesizerThread::write_HWREG(uint64_t data)
         TRXPOS.int_dest_y %= 2048;
     }
 
-    int max_pixels = TRXREG.width * TRXREG.height;
+    const int max_pixels = TRXREG.width * TRXREG.height;
     if (pixels_transferred >= max_pixels)
     {
         //Deactivate the transmisssion
         printf("[GS_t] HWREG transfer ended\n");
         TRXDIR = 3;
         pixels_transferred = 0;
-        //tex_cache.flush();
+
+        Rect rect = {};
+        rect.x = TRXPOS.dest_x;
+        rect.y = TRXPOS.dest_y;
+        rect.z = rect.x + TRXREG.width;
+        rect.w = rect.y + TRXREG.height;
+
+        CacheRegion region = {};
+        region.psm = BITBLTBUF.dest_format;
+        region.base = BITBLTBUF.dest_base;
+        region.width = BITBLTBUF.dest_width;
+        region.rect = rect;
+
+        tex_cache.invalidate(region);
     }
 }
 
@@ -3401,6 +3450,21 @@ void GraphicsSynthesizerThread::local_to_local()
         TRXPOS.int_dest_x %= 2048;
         TRXPOS.int_dest_y %= 2048;
     }
+
+    Rect rect = {};
+    rect.x = TRXPOS.dest_x;
+    rect.y = TRXPOS.dest_y;
+    rect.z = rect.x + TRXREG.width;
+    rect.w = rect.y + TRXREG.height;
+
+    CacheRegion region = {};
+    region.psm = BITBLTBUF.dest_format;
+    region.base = BITBLTBUF.dest_base;
+    region.width = BITBLTBUF.dest_width;
+    region.rect = rect;
+
+    tex_cache.invalidate(region);
+
     pixels_transferred = 0;
     TRXDIR = 3;
 }

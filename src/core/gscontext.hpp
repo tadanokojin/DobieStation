@@ -98,6 +98,11 @@ struct FRAME
     uint32_t width;
     uint8_t format;
     uint32_t mask;
+
+    const bool no_update() const noexcept
+    {
+        return mask == 0xFFFFFFFF;
+    }
 };
 
 struct ZBUF

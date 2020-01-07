@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
-#include <map>
+#include <array>
 #include <string>
 #include <sstream>
 #include "gscontext.hpp"
@@ -9,9 +9,17 @@
 
 struct Texture;
 struct TextureCache;
+struct CacheRegion;
+struct Rect;
 
+// some typedefs
 using lookup_t = std::pair<TEX0, TEXA_REG>;
 using cache_map_t = std::unordered_map<lookup_t, Texture*>;
+
+struct Rect
+{
+    uint32_t x, y, z, w;
+};
 
 namespace std
 {
@@ -80,15 +88,89 @@ struct equal_to<lookup_t>
 };
 }
 
+//        <------------------- buffer width --------------------->
+// base -> ------------------------------------------------------
+//        |                                                      |
+//        | (x, y) -> --------------------------                 |
+//        |          |                          |                |
+//        |          |                          |                |
+//        |          |                          |                |
+//        |          |                          |                |
+//        |          |                          |                |
+//        |          |                          |                |
+//        |          |                          |                |
+//        |           -------------------------- <- (z, w)       |
+//        |                                                      |
+struct CacheRegion
+{
+    uint32_t psm;
+    uint32_t base;
+    uint32_t width;
+    Rect rect;
+
+    const uint32_t start_page() const noexcept
+    {
+        return base / 8192;
+    };
+
+    const uint32_t end_page() const noexcept
+    {
+        uint32_t page_width;
+        uint32_t page_height;
+
+        switch (psm)
+        {
+        case 0x0:
+        case 0x1:
+        case 0x30:
+        case 0x31:
+            page_width = 64;
+            page_height = 32;
+            break;
+        case 0x2:
+        case 0xa:
+        case 0x32:
+        case 0x3a:
+            page_width = 64;
+            page_height = 64;
+            break;
+        default: // TODO
+            return 1;
+        }
+
+        const uint32_t total_pages = ((rect.z - 1) / page_width) + (rect.w / page_height);
+
+        // invalidate at lease 1 page
+        return std::max(base / 8192 + total_pages, base / 8192 + 1);
+    };
+};
+
+// optimization notes:
+// 1. currently we invalidate entire textures instead of
+//    invalidating the area within them. This means that
+//    misses are technically more expensive than they need be
+// 2. invalidations happen between the start and end page boundries
+//    this doesn't account for the fact that writes don't need to be
+//    the full width of the buffer so in some cases we are needlessly
+//    invalidating pages
+// 3. I have read that unordered map can be slow.
+
 struct TextureCache
 {
-    // TODO
-    // perf implications of unordered map
+    // Max number of pages is 512 on a retail PS2
+    // However, I believe some dev/arcade machines can do more
+    // For now, assume retail as that is what the gsthread does.
+    static constexpr int MAX_PAGES{512};
+
     cache_map_t m_cached_tex{};
+    std::array<std::vector<Texture*>, MAX_PAGES> m_pages{};
+
     uint64_t misses_this_frame{0};
 
-    void add_texture(Texture* tex);
     Texture* lookup(TEX0 tex0, TEXA_REG texa);
+    void add_texture(Texture* tex);
+
+    void invalidate(CacheRegion& rect);
 
     void flush();
 };
@@ -116,7 +198,15 @@ struct Texture
     void validate()   { m_valid = true;  };
     void invalidate() { m_valid = false; };
 
-    bool valid() const noexcept { return m_valid; };
-
     bool save(std::string name);
+
+    bool valid()   const noexcept { return m_valid;  };
+    bool invalid() const noexcept { return !m_valid; };
+
+    const uint32_t buffer_width() const noexcept { return m_tex0.width; };
+    const uint32_t format()       const noexcept { return m_tex0.format; };
+    const uint32_t base()         const noexcept { return m_tex0.texture_base; };
+
+    const size_t size() const noexcept { return m_size; };
+    const Rect rect()   const noexcept { return {0, 0, m_tex0.tex_height, m_tex0.tex_width}; };
 };
