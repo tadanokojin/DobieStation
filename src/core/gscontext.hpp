@@ -68,6 +68,11 @@ struct MIPTBL
 struct SCISSOR
 {
     uint16_t x1, x2, y1, y2;
+
+    const bool empty() const noexcept
+    {
+        return x1 == x2 && y1 == y2;
+    }
 };
 
 struct ALPHA
