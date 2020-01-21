@@ -11,77 +11,88 @@ struct Texture;
 struct TextureCache;
 struct CacheRegion;
 struct Rect;
+struct LookupInfo;
 
 // some typedefs
-using lookup_t = std::pair<TEX0, TEXA_REG>;
-using cache_map_t = std::unordered_map<lookup_t, Texture*>;
+using cache_map_t = std::unordered_map<LookupInfo, Texture*>;
 
 struct Rect
 {
     uint32_t x, y, z, w;
 };
 
+struct LookupInfo
+{
+    uint32_t base;
+    uint32_t format;
+    uint32_t buffer_width;
+    uint16_t width;
+    uint16_t height;
+
+    bool trans_black;
+    uint8_t source_alpha0;
+    uint8_t source_alpha1;
+};
+
 namespace std
 {
 template <>
-struct hash<lookup_t>
+struct hash<LookupInfo>
 {
-    size_t operator()(const lookup_t& tex_info) const noexcept
+    size_t operator()(const LookupInfo& tex_info) const noexcept
     {
         size_t hash = 0;
         std::hash<uint64_t> hasher;
 
-        TEX0 tex0 = tex_info.first;
-        TEXA_REG texa = tex_info.second;
-
         // just a guess
         // might not be the best hashing function
-        hash ^= hasher(tex0.texture_base) << 1;
-        hash ^= hasher(tex0.tex_height)   << 2;
-        hash ^= hasher(tex0.tex_width)    << 3;
-        hash ^= hasher(tex0.format)       << 4;
+        hash ^= hasher(tex_info.base)         << 1;
+        hash ^= hasher(tex_info.height)       << 2;
+        hash ^= hasher(tex_info.width)        << 3;
+        hash ^= hasher(tex_info.format)       << 4;
+        hash ^= hasher(tex_info.buffer_width) << 5;
 
-        auto format = tex_info.first.format;
+        const uint32_t& format = tex_info.format;
 
         // 24 and 16 bit
-        if ((format & 0x3) == 1 || (format & 0x3) == 2 && !texa.trans_black)
-            hash ^= hasher(texa.alpha0) << 6;
+        if ((format & 0x3) == 1 || (format & 0x3) == 2 && !tex_info.trans_black)
+            hash ^= hasher(tex_info.source_alpha0) << 6;
 
         // 16 bit
         if ((format & 0x3) == 2)
-            hash ^= hasher(texa.alpha1) << 7;
+            hash ^= hasher(tex_info.source_alpha1) << 7;
 
         return hash;
     }
 };
 
-// should probably move to == operator of the TEX0 and TEXA registers
 template <>
-struct equal_to<lookup_t>
+struct equal_to<LookupInfo>
 {
-    bool operator()(const lookup_t& lhs, const lookup_t& rhs) const noexcept
+    bool operator()(const LookupInfo& lhs, const LookupInfo& rhs) const noexcept
     {
         bool wan = true;
-        wan &= lhs.first.texture_base == rhs.first.texture_base;
-        wan &= lhs.first.tex_height   == rhs.first.tex_height;
-        wan &= lhs.first.tex_width    == rhs.first.tex_width;
-        wan &= lhs.first.format       == rhs.first.format;
+        wan &= lhs.base   == rhs.base;
+        wan &= lhs.height == rhs.height;
+        wan &= lhs.width == rhs.width;
+        wan &= lhs.buffer_width  == rhs.buffer_width;
+        wan &= lhs.format == rhs.format;
 
         if (!wan)
             return false;
 
-        auto format = lhs.first.format;
+        const uint32_t& format = lhs.format;
 
         // 24 and 16 bit
         if ((format & 0x3) == 1 || (format & 0x3) == 2)
         {
-            if (!lhs.second.trans_black && !rhs.second.trans_black)
-                wan &= lhs.second.alpha0 == rhs.second.alpha0;
+            if (!lhs.trans_black && !rhs.trans_black)
+                wan &= lhs.source_alpha0 == rhs.source_alpha0;
         }
 
         // 16 bit
         if ((format & 0x3) == 2)
-            wan &= lhs.second.alpha1 == rhs.second.alpha1;
+            wan &= lhs.source_alpha1 == rhs.source_alpha1;
 
         return wan;
     }
@@ -167,7 +178,7 @@ struct TextureCache
 
     uint64_t misses_this_frame{0};
 
-    Texture* lookup(TEX0 tex0, TEXA_REG texa);
+    Texture* lookup(LookupInfo& info);
     void add_texture(Texture* tex);
 
     void invalidate(CacheRegion& rect);
@@ -181,16 +192,13 @@ struct Texture
     // buffer for the cached data
     std::unique_ptr<uint32_t[]> m_data{ nullptr };
 
-    // copies of the registers for later use
-    TEX0 m_tex0;
-    TEXA_REG m_texa;
-
+    LookupInfo m_info;
     size_t m_size;
 
     bool m_valid{ false };
 
     Texture() = delete;
-    Texture(TEX0 tex0, TEXA_REG texa);
+    Texture(LookupInfo info);
 
     bool map(uint32_t** buff);
     void unmap();
@@ -203,10 +211,11 @@ struct Texture
     bool valid()   const noexcept { return m_valid;  };
     bool invalid() const noexcept { return !m_valid; };
 
-    const uint32_t buffer_width() const noexcept { return m_tex0.width; };
-    const uint32_t format()       const noexcept { return m_tex0.format; };
-    const uint32_t base()         const noexcept { return m_tex0.texture_base; };
+    const uint32_t buffer_width() const noexcept { return m_info.buffer_width; };
+    const uint32_t format()       const noexcept { return m_info.format; };
+    const uint32_t base()         const noexcept { return m_info.base; };
+    const LookupInfo info()       const noexcept { return m_info; };
 
     const size_t size() const noexcept { return m_size; };
-    const Rect rect()   const noexcept { return {0, 0, m_tex0.tex_height, m_tex0.tex_width}; };
+    const Rect rect()   const noexcept { return {0, 0, m_info.height, m_info.width}; };
 };

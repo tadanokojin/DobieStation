@@ -45,26 +45,26 @@ void TextureCache::add_texture(Texture* tex)
 
     for (auto i = start_page; i < end_page; i++)
     {
-        printf("[TEXCACHE] insert into page %d ($%x)\n", i, tex->m_tex0.texture_base);
+        printf("[TEXCACHE] insert into page %d ($%x)\n", i, tex->base());
         m_pages[i].push_back(tex);
     }
-    m_cached_tex.insert({ lookup_t(tex->m_tex0, tex->m_texa), tex });
+
+    m_cached_tex.insert({ tex->info(), tex });
 }
 
 // Attempts to find a texture in the cache
 // should it fail, it will perform a "miss"
 // and load the texture out of GS memory
-Texture* TextureCache::lookup(TEX0 tex0, TEXA_REG texa)
+Texture* TextureCache::lookup(LookupInfo& info)
 {
-    auto it = m_cached_tex.find(lookup_t(tex0, texa));
+    auto it = m_cached_tex.find(info);
 
     // lookup hit
     if (it != m_cached_tex.end())
     {
         printf(
             "[TEXCACHE] hit! ($%x) ($%x) w: %d h: %d \n",
-            tex0.texture_base, tex0.format,
-            tex0.tex_width, tex0.tex_height
+            info.base, info.format, info.width, info.height
         );
 
         return it->second;
@@ -72,8 +72,7 @@ Texture* TextureCache::lookup(TEX0 tex0, TEXA_REG texa)
 
     printf(
         "[TEXCACHE] miss! ($%x) ($%x) w: %d h: %d \n",
-        tex0.texture_base, tex0.format,
-        tex0.tex_width, tex0.tex_height
+        info.base, info.format, info.width, info.height
     );
 
     return nullptr;
@@ -110,10 +109,10 @@ void TextureCache::flush()
     m_cached_tex.clear();
 }
 
-Texture::Texture(TEX0 tex0, TEXA_REG texa) :
-    m_tex0(tex0), m_texa(texa)
+Texture::Texture(LookupInfo info) :
+    m_info(info)
 {
-    m_size = (size_t)m_tex0.tex_width * (size_t)m_tex0.tex_height;
+    m_size = (size_t)info.width * (size_t)info.height;
     m_data = std::make_unique<uint32_t[]>(m_size);
 }
 
@@ -131,8 +130,8 @@ void Texture::unmap()
 
 bool Texture::save(std::string name)
 {
-    const size_t width = m_tex0.tex_width;
-    const size_t height = m_tex0.tex_height;
+    const size_t width =  static_cast<size_t>(m_info.width);
+    const size_t height = static_cast<size_t>(m_info.height);
 
     std::vector<unsigned char> image(width * height * 4);
     std::vector<unsigned char> image_alpha(width * height * 4);
@@ -159,12 +158,12 @@ bool Texture::save(std::string name)
 
     std::stringstream ss;
 
-    std::hash<lookup_t> hasher;
-    auto hash = hasher(lookup_t(m_tex0, m_texa));
+    std::hash<LookupInfo> hasher;
+    auto hash = hasher(m_info);
 
     ss << "dump/" << hash << "_" << name << "_";
 
-    switch (m_tex0.format)
+    switch (m_info.format)
     {
     case 0x0:
         ss << "CT32";
@@ -209,7 +208,7 @@ bool Texture::save(std::string name)
         ss << "unk";
     }
 
-    ss << "_" << std::hex << m_tex0.texture_base;
+    ss << "_" << std::hex << m_info.base;
 
     auto err = lodepng::encode(ss.str() + ".png", image, width, height);
     if (err)

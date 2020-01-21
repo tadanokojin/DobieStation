@@ -1506,7 +1506,17 @@ uint32_t GraphicsSynthesizerThread::lookup_frame_color(int32_t x, int32_t y)
 
 Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
 {
-    Texture* texture = tex_cache.lookup(tex0, texa);
+    LookupInfo info = {};
+    info.base = tex0.texture_base;
+    info.format = tex0.format;
+    info.width = tex0.tex_width;
+    info.height = tex0.tex_height;
+    info.buffer_width = tex0.width;
+    info.trans_black = texa.trans_black;
+    info.source_alpha0 = texa.alpha0;
+    info.source_alpha1 = texa.alpha1;
+
+    Texture* texture = tex_cache.lookup(info);
 
     // TODO
     // This isn't very obvious but the lookup will return nullptr on miss
@@ -1525,7 +1535,7 @@ Texture* GraphicsSynthesizerThread::lookup_texture(TEX0& tex0, TEXA_REG& texa)
         // 3. results of clut conversion
         if (!texture)
         {
-            texture = new Texture(tex0, texa);
+            texture = new Texture(info);
             tex_cache.add_texture(texture);
         }
 
