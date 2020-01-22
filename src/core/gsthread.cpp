@@ -461,6 +461,7 @@ void GraphicsSynthesizerThread::reset()
     pixels_transferred = 0;
     num_vertices = 0;
     frame_count = 0;
+    reg.deinterlace_method = BOB_DEINTERLACE;
 
     COLCLAMP = true;
 
@@ -486,6 +487,7 @@ void GraphicsSynthesizerThread::reset()
     recompile_draw_pixel_prologue();
 
     reset_fifos();
+    memset(screen_buffer, 0, sizeof(screen_buffer));
 }
 
 void GraphicsSynthesizerThread::memdump(uint32_t* target, uint16_t& width, uint16_t& height)
@@ -548,11 +550,19 @@ void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
 {
     int width;
     int height;
+    int y_increment = 1;
+    int start_scanline = 0;
+    int frame_line_increment = 1;
+    int fb_y = 0;
+
     DISPLAY &cur_disp = reg.DISPLAY1;
 
     //Makai Kingdom needs to take its display information from Display2
     if (!reg.PMODE.circuit1)
     {
+        if (!reg.PMODE.circuit2)
+            return;
+
         cur_disp = reg.DISPLAY2;
     }
 
@@ -579,22 +589,37 @@ void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
     else
         height = cur_disp.height;
 
-
-    for (int y = 0; y < height; y++)
+    if (reg.SMODE2.interlaced)
     {
+        if (reg.deinterlace_method != BOB_DEINTERLACE)
+        {
+            y_increment = 2;
+            start_scanline = !reg.CSR.is_odd_frame; //Seems to write the upper fields first
+
+            if (!reg.SMODE2.frame_mode)
+                frame_line_increment = 2;
+
+            fb_y = reg.CSR.is_odd_frame;
+        }
+    }
+
+    for (int y = start_scanline; y <= height; y += y_increment)
+    {
+        if (reg.SMODE2.interlaced)
+        {
+            //Gets rid of some nasty interlace bobbing artifacts
+            if (y == 0)
+                continue;
+        }
         for (int x = 0; x < width; x++)
         {
             int pixel_x = x;
             int pixel_y = y;
 
-            if (reg.SMODE2.frame_mode && reg.SMODE2.interlaced)
-                pixel_y *= 2;
-            if (pixel_x >= width || pixel_y >= height)
-                continue;
             uint32_t scaled_x1 = reg.DISPFB1.x + x;
             uint32_t scaled_x2 = reg.DISPFB2.x + x;
-            uint32_t scaled_y1 = reg.DISPFB1.y + y;
-            uint32_t scaled_y2 = reg.DISPFB2.y + y;
+            uint32_t scaled_y1 = reg.DISPFB1.y + fb_y;
+            uint32_t scaled_y2 = reg.DISPFB2.y + fb_y;
 
             uint32_t output1 = reg.PMODE.circuit1 ? get_CRT_color(reg.DISPFB1, scaled_x1, scaled_y1) : 0;
             uint32_t output2 = reg.PMODE.circuit2 ? get_CRT_color(reg.DISPFB2, scaled_x2, scaled_y2) : reg.BGCOLOR;
@@ -603,6 +628,7 @@ void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
                 output2 = reg.BGCOLOR;
 
             uint32_t r, g, b;
+            uint32_t r1, g1, b1, r2, g2, b2;
             uint32_t final_color;
 
             //If Circuit 1 is disabled, we can skip alpha blending on Circuit 2
@@ -622,8 +648,6 @@ void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
                 if (alpha > 0xFF)
                     alpha = 0xFF;
 
-                uint32_t r1, g1, b1, r2, g2, b2;
-                
                 r1 = output1 & 0xFF; r2 = output2 & 0xFF;
                 g1 = (output1 >> 8) & 0xFF; g2 = (output2 >> 8) & 0xFF;
                 b1 = (output1 >> 16) & 0xFF; b2 = (output2 >> 16) & 0xFF;
@@ -649,11 +673,107 @@ void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
 
             final_color = 0xFF000000 | r | (g << 8) | (b << 16);
 
-            target[pixel_x + (pixel_y * width)] = final_color;
+            if (reg.SMODE2.interlaced)
+            {
+                switch (reg.deinterlace_method)
+                {
+                    case MERGE_FIELD_DEINTERLACE:
+                    {
+                        if (!reg.CSR.is_odd_frame)
+                        {
+                            screen_buffer[pixel_x + (pixel_y * width)] = final_color;
 
-            if (reg.SMODE2.frame_mode && reg.SMODE2.interlaced)
-                target[pixel_x + ((pixel_y + 1) * width)] = final_color;
+                            r1 = r; r2 = screen_buffer[pixel_x + ((pixel_y + 1) * width)] & 0xFF;
+                            g1 = g; g2 = (screen_buffer[pixel_x + ((pixel_y + 1) * width)] >> 8) & 0xFF;
+                            b1 = b; b2 = (screen_buffer[pixel_x + ((pixel_y + 1) * width)] >> 16) & 0xFF;
+
+                            r = (r1 + r2) >> 1;
+                            g = (g1 + g2) >> 1;
+                            b = (b1 + b2) >> 1;
+
+                            screen_buffer[pixel_x + (pixel_y * width)] = 0xFF000000 | r | (g << 8) | (b << 16);
+                        }
+                        else
+                        {
+                            screen_buffer[pixel_x + (pixel_y * width)] = final_color;
+
+                            r1 = r; r2 = screen_buffer[pixel_x + ((pixel_y - 1) * width)] & 0xFF;
+                            g1 = g; g2 = (screen_buffer[pixel_x + ((pixel_y - 1) * width)] >> 8) & 0xFF;
+                            b1 = b; b2 = (screen_buffer[pixel_x + ((pixel_y - 1) * width)] >> 16) & 0xFF;
+
+                            r = (r1 + r2) >> 1;
+                            g = (g1 + g2) >> 1;
+                            b = (b1 + b2) >> 1;
+
+                            screen_buffer[pixel_x + (pixel_y * width)] = 0xFF000000 | r | (g << 8) | (b << 16);
+                        }
+
+                        target[pixel_x + (pixel_y * width)] = screen_buffer[pixel_x + (pixel_y * width)];
+
+                        if (!reg.CSR.is_odd_frame)
+                            target[pixel_x + ((pixel_y + 1) * width)] = screen_buffer[pixel_x + ((pixel_y + 1) * width)];
+                        else if (pixel_y > 0)
+                            target[pixel_x + ((pixel_y - 1) * width)] = screen_buffer[pixel_x + ((pixel_y - 1) * width)];
+                        break;
+                    }
+                    case BLEND_SCANLINE_DEINTERLACE:
+                    {
+                        r1 = r; r2 = screen_buffer[pixel_x + ((pixel_y)* width)] & 0xFF;
+                        g1 = g; g2 = (screen_buffer[pixel_x + ((pixel_y)* width)] >> 8) & 0xFF;
+                        b1 = b; b2 = (screen_buffer[pixel_x + ((pixel_y)* width)] >> 16) & 0xFF;
+
+                        r = (r1 + r2) >> 1;
+                        g = (g1 + g2) >> 1;
+                        b = (b1 + b2) >> 1;
+
+                        final_color = 0xFF000000 | r | (g << 8) | (b << 16);
+
+                        screen_buffer[pixel_x + (pixel_y * width)] = final_color;
+                        target[pixel_x + (pixel_y * width)] = final_color;
+
+                        if (!reg.CSR.is_odd_frame)
+                            target[pixel_x + ((pixel_y + 1) * width)] = screen_buffer[pixel_x + ((pixel_y + 1) * width)];
+                        else if (pixel_y > 0)
+                            target[pixel_x + ((pixel_y - 1) * width)] = screen_buffer[pixel_x + ((pixel_y - 1) * width)];
+                        break;
+                    }
+                    case BOB_DEINTERLACE:
+                    {
+                        if (reg.SMODE2.frame_mode)
+                        {
+                            pixel_y *= 2;
+                            target[pixel_x + (pixel_y * width)] = final_color;
+                            target[pixel_x + ((pixel_y + 1)* width)] = final_color;
+                        }
+                        else
+                        {
+                            target[pixel_x + (pixel_y * width)] = final_color;
+                        }
+                        break;
+                    }
+                    default: //No Deinterlacing
+                    {
+                        screen_buffer[pixel_x + (pixel_y * width)] = final_color;
+
+                        target[pixel_x + (pixel_y * width)] = final_color;
+
+                        if (reg.SMODE2.interlaced)
+                        {
+                            if (!reg.CSR.is_odd_frame)
+                                target[pixel_x + ((pixel_y + 1) * width)] = screen_buffer[pixel_x + ((pixel_y + 1) * width)];
+                            else if (pixel_y > 0)
+                                target[pixel_x + ((pixel_y - 1) * width)] = screen_buffer[pixel_x + ((pixel_y - 1) * width)];
+                        }
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                target[pixel_x + (pixel_y * width)] = final_color;
+            }
         }
+        fb_y += frame_line_increment;
     }
 }
 
@@ -2753,19 +2873,11 @@ void GraphicsSynthesizerThread::render_sprite()
 
     calculate_LOD(tex_info);
 
-    uint32_t zvalue = v2.z;
-    uint8_t fog = v2.fog;
-
-    if (v1.x > v2.x)
-    {
-        swap(v1, v2);
-    }
-
     //Automatic scissoring test
-    int32_t min_y = ((std::max(v1.y, (int32_t)current_ctx->scissor.y1) + 8) >> 4) << 4;
-    int32_t min_x = ((std::max(v1.x, (int32_t)current_ctx->scissor.x1) + 8) >> 4) << 4;
-    int32_t max_y = ((std::min(v2.y, (int32_t)current_ctx->scissor.y2 + 0x10) + 8) >> 4) << 4;
-    int32_t max_x = ((std::min(v2.x, (int32_t)current_ctx->scissor.x2 + 0x10) + 8) >> 4) << 4;
+    const int32_t min_y = ((std::max(std::min(v1.y, v2.y), (int32_t)current_ctx->scissor.y1) + 8) >> 4) << 4;
+    const int32_t min_x = ((std::max(std::min(v1.x, v2.x), (int32_t)current_ctx->scissor.x1) + 8) >> 4) << 4;
+    const int32_t max_y = ((std::min(std::max(v1.y, v2.y), (int32_t)current_ctx->scissor.y2 + 0x10) + 8) >> 4) << 4;
+    const int32_t max_x = ((std::min(std::max(v1.x, v2.x), (int32_t)current_ctx->scissor.x2 + 0x10) + 8) >> 4) << 4;
 
     printf("Coords: (%d, %d) (%d, %d)\n", min_x >> 4, min_y >> 4, max_x >> 4, max_y >> 4);
 
@@ -2790,7 +2902,7 @@ void GraphicsSynthesizerThread::render_sprite()
         {
             if (tmp_tex)
             {
-                tex_info.fog = fog;
+                tex_info.fog = v2.fog;
                 if (tmp_st)
                 {
                     pix_v = (pix_t * tex_info.tex_height) * 16.0;
@@ -2811,17 +2923,17 @@ void GraphicsSynthesizerThread::render_sprite()
                 }
 
 #ifdef GS_JIT
-                jit_draw_pixel_prologue(x, y, zvalue, tex_info.tex_color);
+                jit_draw_pixel_prologue(x, y, v2.z, tex_info.tex_color);
 #else
-                draw_pixel(x, y, zvalue, tex_info.tex_color);
+                draw_pixel(x, y, v2.z, tex_info.tex_color);
 #endif
             }
             else
             {
 #ifdef GS_JIT
-                jit_draw_pixel_prologue(x, y, zvalue, tex_info.vtx_color);
+                jit_draw_pixel_prologue(x, y, v2.z, tex_info.vtx_color);
 #else
-                draw_pixel(x, y, zvalue, tex_info.vtx_color);
+                draw_pixel(x, y, v2.z, tex_info.vtx_color);
 #endif
             }
             pix_s += pix_s_step;
@@ -3337,6 +3449,14 @@ void GraphicsSynthesizerThread::local_to_local()
                 data = read_PSMCT32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                                           TRXPOS.int_source_x, TRXPOS.int_source_y);
                 break;
+            case 0x02:
+                data = read_PSMCT16_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                                          TRXPOS.int_source_x, TRXPOS.int_source_y);
+                break;
+            case 0x0A:
+                data = read_PSMCT16S_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                                          TRXPOS.int_source_x, TRXPOS.int_source_y);
+                break;
             case 0x13:
                 data = read_PSMCT8_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                                          TRXPOS.int_source_x, TRXPOS.int_source_y);
@@ -3366,6 +3486,14 @@ void GraphicsSynthesizerThread::local_to_local()
                 break;
             case 0x01:
                 write_PSMCT24_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
+                                    TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
+                break;
+            case 0x02:
+                write_PSMCT16_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
+                                    TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
+                break;
+            case 0x0A:
+                write_PSMCT16S_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
                                     TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
                 break;
             case 0x13:

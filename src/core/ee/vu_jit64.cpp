@@ -85,8 +85,14 @@ void vu_set_int(VectorUnit& vu, int dest, uint16_t value)
 
 void vu_update_pipelines(VectorUnit& vu, int cycles)
 {
+    bool update_status = false;
     for (int i = 0; i < cycles; i++)
     {
+        if ((vu.MAC_pipeline[3] & 0xFFFF) != (vu.MAC_pipeline[2] & 0xFFFF))
+            update_status = true;
+        else
+            update_status = false;
+
         vu.MAC_pipeline[3] = vu.MAC_pipeline[2];
         vu.MAC_pipeline[2] = vu.MAC_pipeline[1];
         vu.MAC_pipeline[1] = vu.MAC_pipeline[0];
@@ -97,7 +103,15 @@ void vu_update_pipelines(VectorUnit& vu, int cycles)
         vu.CLIP_pipeline[1] = vu.CLIP_pipeline[0];
         vu.CLIP_pipeline[0] = vu.clip_flags;
 
-        vu.update_status();
+        if(update_status)
+            vu.update_status();
+
+        if (vu.status_pipe > 0)
+        {
+            vu.status_pipe--;
+            if (!vu.status_pipe)
+                vu.status = (vu.status & 0x3F) | (vu.status_value & 0xFFF);
+        }
     }
 }
 
@@ -111,10 +125,11 @@ void vu_update_xgkick(VectorUnit& vu, int cycles)
     if (vu.transferring_GIF)
     {
         vu.gif->request_PATH(1, true);
-        while (cycles > 0 && vu.gif->path_active(1, true))
+        while (cycles >= 2 && vu.gif->path_active(1, true))
         {
-            cycles--;
             vu.handle_XGKICK();
+            //We send cycles in VU cycles (300Mhz), XGKick runs at Bus Clk (150Mhz)
+            cycles -= 2;
         }
     }
 }
@@ -2051,7 +2066,7 @@ void VU_JIT64::eleng(VectorUnit &vu, IR::Instruction &instr)
     REG_64 source = alloc_sse_reg(vu, instr.get_source(), REG_STATE::READ);
     REG_64 temp = REG_64::XMM0;
 
-    clamp_vfreg(0xE, source);
+    clamp_vfreg(0x7, source);
 
     emitter.MOVAPS_REG(source, temp);
 
@@ -2071,7 +2086,7 @@ void VU_JIT64::erleng(VectorUnit &vu, IR::Instruction &instr)
     REG_64 temp = REG_64::XMM0;
     REG_64 temp2 = REG_64::XMM1;
 
-    clamp_vfreg(0xE, source);
+    clamp_vfreg(0x7, source);
 
     emitter.MOVAPS_REG(source, temp);
 
@@ -2131,7 +2146,7 @@ void VU_JIT64::rinit(VectorUnit &vu, IR::Instruction &instr)
     REG_64 source = alloc_sse_reg(vu, instr.get_source(), REG_STATE::READ);
     REG_64 temp = REG_64::XMM0;
 
-    clamp_vfreg(field, source);
+    clamp_vfreg(1 << field, source);
 
     //R = 0x3F800000 | (reg[field] & 0x007FFFFF)
     emitter.INSERTPS(field, 0, 0, source, temp);
