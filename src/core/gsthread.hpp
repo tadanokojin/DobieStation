@@ -110,14 +110,18 @@ struct GSMessage
 };
 
 //Commands sent from the GS thread to the main thread.
-enum GSReturn :uint8_t
+enum GSReturn : uint8_t
 {
     render_complete_t,
     death_error_t,
     save_state_done_t,
     load_state_done_t,
-    gsdump_render_partial_done_t,
-    local_host_transfer,
+    gsdump_render_partial_done_t
+};
+
+enum GSTransfer : uint8_t
+{
+    local_host_transfer
 };
 
 union GSReturnMessagePayload
@@ -141,14 +145,26 @@ union GSReturnMessagePayload
     } data_payload;
 };
 
+union GSTransferMessagePayload
+{
+    struct
+    {
+        uint128_t quad_data;
+        uint32_t status;
+    } data_payload;
+};
+
 struct GSReturnMessage
 {
     GSReturn type;
     GSReturnMessagePayload payload;
 };
 
-typedef CircularFifo<GSMessage, 1024 * 1024 * 16> gs_fifo;
-typedef CircularFifo<GSReturnMessage, 1024> gs_return_fifo;
+struct GSTransferMessage
+{
+    GSTransfer type;
+    GSTransferMessagePayload payload;
+};
 
 struct PRMODE_REG
 {
@@ -341,6 +357,10 @@ typedef void (*GSTexLookupPrologue)(int16_t u, int16_t v, TexLookupInfo* info);
 
 class GraphicsSynthesizerThread
 {
+    using fifo = CircularFifo<GSMessage, 1024 * 1024 * 16>;
+    using return_fifo = CircularFifo<GSReturnMessage, 1024>;
+    using transfer_fifo = CircularFifo<GSTransferMessage, 1024>;
+
     private:
 #ifdef _MSC_VER
         constexpr static REG_64 abi_args[] = {RCX, RDX, R8, R9};
@@ -354,10 +374,10 @@ class GraphicsSynthesizerThread
         std::mutex data_mutex;
 
         bool send_data = false;
-        bool recieve_data = false;
 
-        std::unique_ptr<gs_fifo> message_queue{ nullptr };
-        std::unique_ptr<gs_return_fifo> return_queue{ nullptr };
+        std::unique_ptr<fifo> message_queue{ nullptr };
+        std::unique_ptr<return_fifo> return_queue{ nullptr };
+        std::unique_ptr<transfer_fifo> transfer_queue{ nullptr };
 
         bool frame_complete;
         int frame_count;
@@ -535,6 +555,7 @@ class GraphicsSynthesizerThread
         void send_message(GSMessage message);
         void wake_thread();
         void wait_for_return(GSReturn type, GSReturnMessage &data);
+        void wait_transfer(GSTransfer type, GSTransferMessage& data);
         void reset();
         void exit();
 };

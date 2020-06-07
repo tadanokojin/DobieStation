@@ -156,7 +156,6 @@ GraphicsSynthesizerThread::~GraphicsSynthesizerThread()
 void GraphicsSynthesizerThread::wait_for_return(GSReturn type, GSReturnMessage &data)
 {
     printf("[GS] Waiting for return\n");
-
     while (true)
     {
         if (return_queue->pop(data))
@@ -172,29 +171,24 @@ void GraphicsSynthesizerThread::wait_for_return(GSReturn type, GSReturnMessage &
             }
 
             if (data.type == type)
-                return;
+                break;
             else
-            {
-                if (return_queue->was_empty())
-                {
-                    //Last message in the queue, so we don't want this one so we need to sleep
-                    return_queue->push(data); //Put it back on the queue, something else probably wants it
-                    printf("[GS] Waiting for return message, pushed last message on to queue type %d expecting %d\n", data.type, type);
-                    std::unique_lock<std::mutex> lk(data_mutex);
-                    notifier.wait(lk, [this] {return recieve_data; });
-                    recieve_data = false;
-                }
-                else
-                    return_queue->push(data); //Put it back on the queue, something else probably wants it
-            }
-              //Errors::die("[GS] return message expected %d but was %d!\n", type, data.type);
+                Errors::die("[GS_t] unexpected return data type %x", data.type);
         }
-        else
+    }
+}
+
+void GraphicsSynthesizerThread::wait_transfer(GSTransfer type, GSTransferMessage& data)
+{
+    printf("[GS] Waiting for transfer\n");
+    while (true)
+    {
+        if (transfer_queue->pop(data))
         {
-            printf("[GS] No Messages, waiting for return message\n");
-            std::unique_lock<std::mutex> lk(data_mutex);
-            notifier.wait(lk, [this] {return recieve_data;});
-            recieve_data = false;
+            if (data.type == type)
+                break;
+            else
+                Errors::die("[GS_t] unexpected transfer data type %x", data.type);
         }
     }
 }
@@ -319,9 +313,6 @@ void GraphicsSynthesizerThread::event_loop()
                         GSReturnMessagePayload return_payload;
                         return_payload.no_payload = { 0 };
                         return_queue->push({ GSReturn::render_complete_t,return_payload });
-                        std::unique_lock<std::mutex> lk(data_mutex);
-                        recieve_data = true;
-                        notifier.notify_one();
                         break;
                     }
                     case assert_finish_t:
@@ -351,9 +342,6 @@ void GraphicsSynthesizerThread::event_loop()
                         GSReturnMessagePayload return_payload;
                         return_payload.xy_payload = { width, height };
                         return_queue->push({ GSReturn::gsdump_render_partial_done_t,return_payload });
-                        std::unique_lock<std::mutex> lk(data_mutex);
-                        recieve_data = true;
-                        notifier.notify_one();
                         break;
                     }
                     case die_t:
@@ -364,9 +352,6 @@ void GraphicsSynthesizerThread::event_loop()
                         GSReturnMessagePayload return_payload;
                         return_payload.no_payload = { 0 };
                         return_queue->push({ GSReturn::load_state_done_t,return_payload });
-                        std::unique_lock<std::mutex> lk(data_mutex);
-                        recieve_data = true;
-                        notifier.notify_one();
                         break;
                     }
                     case save_state_t:
@@ -375,8 +360,6 @@ void GraphicsSynthesizerThread::event_loop()
                         GSReturnMessagePayload return_payload;
                         return_payload.no_payload = { 0 };
                         return_queue->push({ GSReturn::save_state_done_t,return_payload });
-                        recieve_data = true;
-                        notifier.notify_one();
                         break;
                     }
                     case gsdump_t:
@@ -402,13 +385,10 @@ void GraphicsSynthesizerThread::event_loop()
                     }
                     case request_local_host_tx:
                     {
-                        GSReturnMessagePayload return_payload;
-                        return_payload.data_payload.status = (TRXDIR != 3);
-                        return_payload.data_payload.quad_data = local_to_host();
-                        return_queue->push({ GSReturn::local_host_transfer, return_payload });
-                        std::unique_lock<std::mutex> lk(data_mutex);
-                        recieve_data = true;
-                        notifier.notify_one();
+                        GSTransferMessagePayload transfer_payload;
+                        transfer_payload.data_payload.status = (TRXDIR != 3);
+                        transfer_payload.data_payload.quad_data = local_to_host();
+                        transfer_queue->push({ GSTransfer::local_host_transfer, transfer_payload });
                         break;
                     }
                     default:
@@ -431,8 +411,6 @@ void GraphicsSynthesizerThread::event_loop()
         strncpy(copied_string, e.what(), ERROR_STRING_MAX_LENGTH);
         return_payload.death_error_payload.error_str = { copied_string };
         return_queue->push({ GSReturn::death_error_t, return_payload });
-        recieve_data = true;
-        notifier.notify_one();
     }
 }
 
@@ -473,8 +451,10 @@ void GraphicsSynthesizerThread::reset()
 
     memset(screen_buffer, 0, sizeof(screen_buffer));
 
-    message_queue = std::make_unique<gs_fifo>();
-    return_queue = std::make_unique<gs_return_fifo>();
+    message_queue = std::make_unique<fifo>();
+    return_queue = std::make_unique<return_fifo>();
+    transfer_queue = std::make_unique<transfer_fifo>();
+
     thread = std::thread(&GraphicsSynthesizerThread::event_loop, this);
 }
 

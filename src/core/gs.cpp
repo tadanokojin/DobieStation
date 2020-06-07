@@ -361,8 +361,8 @@ std::tuple<uint128_t, uint32_t>GraphicsSynthesizer::request_gs_download()
     payload.no_payload = {};
     gs_thread.send_message({ GSCommand::request_local_host_tx, payload });
     gs_thread.wake_thread();
-    GSReturnMessage data;
-    gs_thread.wait_for_return(GSReturn::local_host_transfer, data);
+    GSTransferMessage data;
+    gs_thread.wait_transfer(GSTransfer::local_host_transfer, data);
     return std::make_tuple(data.payload.data_payload.quad_data, data.payload.data_payload.status);
 }
 
