@@ -89,7 +89,7 @@ namespace GS
                 {
                     uint32_t column = columnTable32[y & 0x7][x & 0x7];
                     page_PSMCT32.get(block,y,x) = (blockid_PSMCT32(block, 0, x, y) << 6) + column;
-                    page_PSMCT32Z.get(block,y,x) = (blockid_PSMCT32Z(block, 0, x, y) << 6) + column;
+                    page_PSMCT32Z.get(block,y,x) = (blockid_PSMZ32(block, 0, x, y) << 6) + column;
                 }
             }
 
@@ -100,21 +100,21 @@ namespace GS
                     uint32_t column = columnTable16[y & 0x7][x & 0xF];
                     page_PSMCT16.get(block,y,x) = (blockid_PSMCT16(block, 0, x, y) << 7) + column;
                     page_PSMCT16S.get(block,y,x) = (blockid_PSMCT16S(block, 0, x, y) << 7) + column;
-                    page_PSMCT16Z.get(block,y,x) = (blockid_PSMCT16Z(block, 0, x, y) << 7) + column;
-                    page_PSMCT16SZ.get(block,y,x) = (blockid_PSMCT16SZ(block, 0, x, y) << 7) + column;
+                    page_PSMCT16Z.get(block,y,x) = (blockid_PSMZ16(block, 0, x, y) << 7) + column;
+                    page_PSMCT16SZ.get(block,y,x) = (blockid_PSMZ16S(block, 0, x, y) << 7) + column;
                 }
             }
 
             for (int y = 0; y < 64; y++)
             {
                 for (int x = 0; x < 128; x++)
-                    page_PSMCT8.get(block,y,x) = (blockid_PSMCT8(block, 0, x, y) << 8) + columnTable8[y & 0xF][x & 0xF];
+                    page_PSMCT8.get(block,y,x) = (blockid_PSMT8(block, 0, x, y) << 8) + columnTable8[y & 0xF][x & 0xF];
             }
 
             for (int y = 0; y < 128; y++)
             {
                 for (int x = 0; x < 128; x++)
-                    page_PSMCT4.get(block,y,x) = (blockid_PSMCT4(block, 0, x, y) << 9) + columnTable4[y & 15][x & 31];
+                    page_PSMCT4.get(block,y,x) = (blockid_PSMT4(block, 0, x, y) << 9) + columnTable4[y & 15][x & 31];
             }
         }
 
@@ -1175,7 +1175,7 @@ namespace GS
         return block + ((y & ~0x1F) * (width / 64)) + ((x >> 1) & ~0x1F) + blockTable32[(y >> 3) & 0x3][(x >> 3) & 0x7];
     }
 
-    uint32_t GraphicsSynthesizerThread::blockid_PSMCT32Z(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+    uint32_t GraphicsSynthesizerThread::blockid_PSMZ32(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
     {
         return block + ((y & ~0x1F) * (width / 64)) + ((x >> 1) & ~0x1F) + blockTable32Z[(y >> 3) & 0x3][(x >> 3) & 0x7];
     }
@@ -1190,22 +1190,22 @@ namespace GS
         return block + ((y >> 1) & ~0x1F) * (width / 64) + ((x >> 1) & ~0x1F) + blockTable16S[(y >> 3) & 7][(x >> 4) & 3];
     }
 
-    uint32_t GraphicsSynthesizerThread::blockid_PSMCT16Z(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+    uint32_t GraphicsSynthesizerThread::blockid_PSMZ16(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
     {
         return block + ((y >> 1) & ~0x1F) * (width / 64) + ((x >> 1) & ~0x1F) + blockTable16Z[(y >> 3) & 7][(x >> 4) & 3];
     }
 
-    uint32_t GraphicsSynthesizerThread::blockid_PSMCT16SZ(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+    uint32_t GraphicsSynthesizerThread::blockid_PSMZ16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
     {
         return block + ((y >> 1) & ~0x1F) * (width / 64) + ((x >> 1) & ~0x1F) + blockTable16SZ[(y >> 3) & 7][(x >> 4) & 3];
     }
 
-    uint32_t GraphicsSynthesizerThread::blockid_PSMCT8(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+    uint32_t GraphicsSynthesizerThread::blockid_PSMT8(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
     {
         return block + ((y >> 1) & ~0x1F) * (width / 128) + ((x >> 2) & ~0x1F) + blockTable8[(y >> 4) & 3][(x >> 4) & 7];
     }
 
-    uint32_t GraphicsSynthesizerThread::blockid_PSMCT4(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+    uint32_t GraphicsSynthesizerThread::blockid_PSMT4(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
     {
         return block + ((y >> 2) & ~0x1f) * (width >> 7) + ((x >> 2) & ~0x1f) + blockTable4[(y >> 4) & 7][(x >> 5) & 3];
     }
@@ -1273,7 +1273,7 @@ namespace GS
         return *(uint32_t*)&local_mem[addr];
     }
 
-    uint32_t GraphicsSynthesizerThread::read_PSMCT32Z_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint32_t GraphicsSynthesizerThread::read_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = addr_PSMCT32Z(base / 256, width / 64, x, y);
         return *(uint32_t*)&local_mem[addr];
@@ -1291,25 +1291,25 @@ namespace GS
         return *(uint16_t*)&local_mem[addr];
     }
 
-    uint16_t GraphicsSynthesizerThread::read_PSMCT16Z_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint16_t GraphicsSynthesizerThread::read_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = addr_PSMCT16Z(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
-    uint16_t GraphicsSynthesizerThread::read_PSMCT16SZ_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint16_t GraphicsSynthesizerThread::read_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = addr_PSMCT16SZ(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
-    uint8_t GraphicsSynthesizerThread::read_PSMCT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint8_t GraphicsSynthesizerThread::read_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = addr_PSMCT8(base / 256, width / 64, x, y);
         return local_mem[addr];
     }
 
-    uint8_t GraphicsSynthesizerThread::read_PSMCT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint8_t GraphicsSynthesizerThread::read_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = addr_PSMCT4(base / 256, width / 64, x, y);
         return (local_mem[addr >> 1] >> ((addr & 1) << 2)) & 0x0f;
@@ -1321,7 +1321,7 @@ namespace GS
         *(uint32_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT32Z_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
+    void GraphicsSynthesizerThread::write_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
         uint32_t addr = addr_PSMCT32Z(base / 256, width / 64, x, y);
         *(uint32_t*)&local_mem[addr] = value;
@@ -1335,7 +1335,7 @@ namespace GS
         *(uint32_t*)&local_mem[addr] = (old_mem & 0xFF000000) | value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT24Z_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
+    void GraphicsSynthesizerThread::write_PSMZ24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
         uint32_t addr = addr_PSMCT32Z(base / 256, width / 64, x, y);
         uint32_t old_mem = *(uint32_t*)&local_mem[addr];
@@ -1355,25 +1355,25 @@ namespace GS
         *(uint16_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT16Z_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
+    void GraphicsSynthesizerThread::write_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
         uint32_t addr = addr_PSMCT16Z(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT16SZ_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
+    void GraphicsSynthesizerThread::write_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
         uint32_t addr = addr_PSMCT16SZ(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
+    void GraphicsSynthesizerThread::write_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
     {
         uint32_t addr = addr_PSMCT8(base / 256, width / 64, x, y);
         local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
+    void GraphicsSynthesizerThread::write_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
     {
         uint32_t addr = addr_PSMCT4(base / 256, width / 64, x, y);
         int shift = (addr & 1) << 2;
@@ -1514,16 +1514,16 @@ namespace GS
                         z = std::min(z, 0xFFFFU);
                         return z >= read_PSMCT16S_block(base, width, x, y);
                     case 0x30:
-                        return z >= read_PSMCT32Z_block(base, width, x, y);
+                        return z >= read_PSMZ32_block(base, width, x, y);
                     case 0x31:
                         z = std::min(z, 0xFFFFFFU);
-                        return z >= (read_PSMCT32Z_block(base, width, x, y) & 0xFFFFFF);
+                        return z >= (read_PSMZ32_block(base, width, x, y) & 0xFFFFFF);
                     case 0x32:
                         z = std::min(z, 0xFFFFU);
-                        return z >= read_PSMCT16Z_block(base, width, x, y);
+                        return z >= read_PSMZ16_block(base, width, x, y);
                     case 0x3A:
                         z = std::min(z, 0xFFFFU);
-                        return z >= read_PSMCT16SZ_block(base, width, x, y);
+                        return z >= read_PSMZ16S_block(base, width, x, y);
                     default:
                         Errors::die("[GS_t] Unrecognized zbuf format $%02X\n", current_ctx->zbuf.format);
                 }
@@ -1543,16 +1543,16 @@ namespace GS
                         z = std::min(z, 0xFFFFU);
                         return z > read_PSMCT16S_block(base, width, x, y);
                     case 0x30:
-                        return z > read_PSMCT32Z_block(base, width, x, y);
+                        return z > read_PSMZ32_block(base, width, x, y);
                     case 0x31:
                         z = std::min(z, 0xFFFFFFU);
-                        return z > (read_PSMCT32Z_block(base, width, x, y) & 0xFFFFFF);
+                        return z > (read_PSMZ32_block(base, width, x, y) & 0xFFFFFF);
                     case 0x32:
                         z = std::min(z, 0xFFFFU);
-                        return z > read_PSMCT16Z_block(base, width, x, y);
+                        return z > read_PSMZ16_block(base, width, x, y);
                     case 0x3A:
                         z = std::min(z, 0xFFFFU);
-                        return z > read_PSMCT16SZ_block(base, width, x, y);
+                        return z > read_PSMZ16S_block(base, width, x, y);
                     default:
                         Errors::die("[GS_t] Unrecognized zbuf format $%02X\n", current_ctx->zbuf.format);
                 }
@@ -1585,18 +1585,18 @@ namespace GS
                 frame_color = convert_color_up(read_PSMCT16S_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y));
                 break;
             case 0x30:
-                frame_color = read_PSMCT32Z_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y);
+                frame_color = read_PSMZ32_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y);
                 break;
             case 0x31://24Z
-                frame_color = read_PSMCT32Z_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y)
+                frame_color = read_PSMZ32_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y)
                     & 0xFFFFFF;
                 frame_color |= 1 << 31;
                 break;
             case 0x32:
-                frame_color = convert_color_up(read_PSMCT16Z_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y));
+                frame_color = convert_color_up(read_PSMZ16_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y));
                 break;
             case 0x3A:
-                frame_color = convert_color_up(read_PSMCT16SZ_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y));
+                frame_color = convert_color_up(read_PSMZ16S_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y));
                 break;
             default:
                 Errors::die("Unknown FRAME format (%x) read attempted", current_ctx->frame.format);
@@ -1873,16 +1873,16 @@ namespace GS
                     write_PSMCT16S_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, convert_color_down(final_color));
                     break;
                 case 0x30:
-                    write_PSMCT32Z_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, final_color);
+                    write_PSMZ32_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, final_color);
                     break;
                 case 0x31:
-                    write_PSMCT24Z_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, final_color);
+                    write_PSMZ24_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, final_color);
                     break;
                 case 0x32:
-                    write_PSMCT16Z_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, convert_color_down(final_color));
+                    write_PSMZ16_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, convert_color_down(final_color));
                     break;
                 case 0x3A:
-                    write_PSMCT16SZ_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, convert_color_down(final_color));
+                    write_PSMZ16S_block(current_ctx->frame.base_pointer, current_ctx->frame.width, x, y, convert_color_down(final_color));
                     break;
                 default:
                     Errors::die("Unknown FRAME format (%x) write attempted", current_ctx->frame.format);
@@ -1909,19 +1909,19 @@ namespace GS
                     write_PSMCT16S_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z & 0xFFFF);
                     break;
                 case 0x30:
-                    write_PSMCT32Z_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z);
+                    write_PSMZ32_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z);
                     break;
                 case 0x31:
                     z = std::min(z, 0xFFFFFFU);
-                    write_PSMCT24Z_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z & 0xFFFFFF);
+                    write_PSMZ24_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z & 0xFFFFFF);
                     break;
                 case 0x32:
                     z = std::min(z, 0xFFFFU);
-                    write_PSMCT16Z_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z & 0xFFFF);
+                    write_PSMZ16_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z & 0xFFFF);
                     break;
                 case 0x3A:
                     z = std::min(z, 0xFFFFU);
-                    write_PSMCT16SZ_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z & 0xFFFF);
+                    write_PSMZ16S_block(current_ctx->zbuf.base_pointer, current_ctx->frame.width, x, y, z & 0xFFFF);
                     break;
             }
         }
@@ -2935,7 +2935,7 @@ namespace GS
                     TRXPOS.int_dest_x++;
                     break;
                 case 0x13:
-                    write_PSMCT8_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width, TRXPOS.int_dest_x, TRXPOS.int_dest_y,
+                    write_PSMT8_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width, TRXPOS.int_dest_x, TRXPOS.int_dest_y,
                                        (data >> (i * 8)) & 0xFF);
                     //printf("[GS_t] Write to $%08X\n", dest_addr);
                     pixels_transferred++;
@@ -2948,7 +2948,7 @@ namespace GS
                         value >>= 4;
                     else
                         value &= 0xF;
-                    write_PSMCT4_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width, TRXPOS.int_dest_x, TRXPOS.int_dest_y,
+                    write_PSMT4_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width, TRXPOS.int_dest_x, TRXPOS.int_dest_y,
                                        value);
                     pixels_transferred++;
                     TRXPOS.int_dest_x++;
@@ -3118,13 +3118,13 @@ namespace GS
                         TRXPOS.int_source_x++;
                         break;
                     case 0x13:
-                        data |= (uint64_t)(read_PSMCT8_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                        data |= (uint64_t)(read_PSMT8_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                             TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xFF) << (i * 8);
                         pixels_transferred++;
                         TRXPOS.int_source_x++;
                         break;
                     case 0x14:
-                        data |= (uint64_t)(read_PSMCT4_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                        data |= (uint64_t)(read_PSMT4_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                             TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xf) << (i * 4);
                         pixels_transferred++;
                         TRXPOS.int_source_x++;
@@ -3136,7 +3136,7 @@ namespace GS
                         TRXPOS.int_source_x++;
                         break;
                     case 0x30:
-                        data |= (uint64_t)(read_PSMCT32Z_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                        data |= (uint64_t)(read_PSMZ32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                             TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xFFFFFFFF) << (i * 32);
                         pixels_transferred++;
                         TRXPOS.int_source_x++;
@@ -3145,13 +3145,13 @@ namespace GS
                         data = pack_PSMCT24(true);
                         break;
                     case 0x32:
-                        data |= (uint64_t)(read_PSMCT16Z_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                        data |= (uint64_t)(read_PSMZ16_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                             TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xFFFF) << (i * 16);
                         pixels_transferred++;
                         TRXPOS.int_source_x++;
                         break;
                     case 0x3A:
-                        data |= (uint64_t)(read_PSMCT16SZ_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                        data |= (uint64_t)(read_PSMZ16S_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                             TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xFFFF) << (i * 16);
                         pixels_transferred++;
                         TRXPOS.int_source_x++;
@@ -3199,11 +3199,11 @@ namespace GS
             if (PSMCT24_unpacked_count == 3)
             {
                 if (z_format)
-                    write_PSMCT24Z_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width, TRXPOS.int_dest_x,
-                                         TRXPOS.int_dest_y, PSMCT24_color);
+                    write_PSMZ24_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width, TRXPOS.int_dest_x,
+                                       TRXPOS.int_dest_y, PSMCT24_color);
                 else
                     write_PSMCT24_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width, TRXPOS.int_dest_x,
-                        TRXPOS.int_dest_y, PSMCT24_color);
+                                        TRXPOS.int_dest_y, PSMCT24_color);
                 PSMCT24_color = 0;
                 PSMCT24_unpacked_count = 0;
                 TRXPOS.int_dest_x++;
@@ -3256,7 +3256,7 @@ namespace GS
             {
                 if (z_format)
                 {
-                    PSMCT24_color = (uint64_t)(read_PSMCT32Z_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                    PSMCT24_color = (uint64_t)(read_PSMZ32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
                         TRXPOS.int_source_x, TRXPOS.int_source_y) & 0xFFFFFF);
                 }
                 else
@@ -3357,25 +3357,25 @@ namespace GS
                                               TRXPOS.int_source_x, TRXPOS.int_source_y);
                     break;
                 case 0x13:
-                    data = read_PSMCT8_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
-                                             TRXPOS.int_source_x, TRXPOS.int_source_y);
+                    data = read_PSMT8_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                                            TRXPOS.int_source_x, TRXPOS.int_source_y);
                     break;
                 case 0x14:
-                    data = read_PSMCT4_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
-                                             TRXPOS.int_source_x, TRXPOS.int_source_y);
+                    data = read_PSMT4_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                                            TRXPOS.int_source_x, TRXPOS.int_source_y);
                     break;
                 case 0x1B:
                     data = read_PSMCT32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
-                        TRXPOS.int_source_x, TRXPOS.int_source_y) >> 24;
+                                              TRXPOS.int_source_x, TRXPOS.int_source_y) >> 24;
                     break;
                 case 0x2C:
                     data = read_PSMCT32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
-                        TRXPOS.int_source_x, TRXPOS.int_source_y) >> 28;
+                                              TRXPOS.int_source_x, TRXPOS.int_source_y) >> 28;
                     break;
                 case 0x30:
                 case 0x31:
-                    data = read_PSMCT32Z_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
-                                              TRXPOS.int_source_x, TRXPOS.int_source_y);
+                    data = read_PSMZ32_block(BITBLTBUF.source_base, BITBLTBUF.source_width,
+                                             TRXPOS.int_source_x, TRXPOS.int_source_y);
                     break;
                 default:
                     Errors::die("[GS_t] Unrecognized local-to-local source format $%02X", BITBLTBUF.source_format);
@@ -3400,12 +3400,12 @@ namespace GS
                                         TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
                     break;
                 case 0x13:
-                    write_PSMCT8_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
-                                        TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
+                    write_PSMT8_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
+                                      TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
                     break;
                 case 0x14:
-                    write_PSMCT4_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
-                                        TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
+                    write_PSMT4_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
+                                      TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
                     break;
                 case 0x1B:
                     data <<= 24;
@@ -3429,12 +3429,12 @@ namespace GS
                                         TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
                     break;
                 case 0x30:
-                    write_PSMCT32Z_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
-                                        TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
+                    write_PSMZ32_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
+                                       TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
                     break;
                 case 0x31:
-                    write_PSMCT24Z_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
-                                        TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
+                    write_PSMZ24_block(BITBLTBUF.dest_base, BITBLTBUF.dest_width,
+                                       TRXPOS.int_dest_x, TRXPOS.int_dest_y, data);
                     break;
                 default:
                     Errors::die("[GS_t] Unrecognized local-to-local dest format $%02X", BITBLTBUF.dest_format);
@@ -3804,7 +3804,7 @@ namespace GS
                 break;
             case 0x13:
             {
-                uint8_t entry = read_PSMCT8_block(tex_base, width, u, v);
+                uint8_t entry = read_PSMT8_block(tex_base, width, u, v);
                 if (current_ctx->tex0.use_CSM2)
                     clut_CSM2_lookup(entry, info.srctex_color);
                 else
@@ -3813,7 +3813,7 @@ namespace GS
                 break;
             case 0x14:
             {
-                uint8_t entry = read_PSMCT4_block(tex_base, width, u, v);
+                uint8_t entry = read_PSMT4_block(tex_base, width, u, v);
                 if (current_ctx->tex0.use_CSM2)
                     clut_CSM2_lookup(entry, info.srctex_color);
                 else
@@ -3851,7 +3851,7 @@ namespace GS
                 break;
             case 0x30:
             {
-                uint32_t color = read_PSMCT32Z_block(tex_base, width, u, v);
+                uint32_t color = read_PSMZ32_block(tex_base, width, u, v);
                 info.srctex_color.r = color & 0xFF;
                 info.srctex_color.g = (color >> 8) & 0xFF;
                 info.srctex_color.b = (color >> 16) & 0xFF;
@@ -3860,7 +3860,7 @@ namespace GS
                 break;
             case 0x31:
             {
-                uint32_t color = read_PSMCT32Z_block(tex_base, width, u, v);
+                uint32_t color = read_PSMZ32_block(tex_base, width, u, v);
                 info.srctex_color.r = color & 0xFF;
                 info.srctex_color.g = (color >> 8) & 0xFF;
                 info.srctex_color.b = (color >> 16) & 0xFF;
@@ -3872,7 +3872,7 @@ namespace GS
                 break;
             case 0x32:
             {
-                uint16_t color = read_PSMCT16Z_block(tex_base, width, u, v);
+                uint16_t color = read_PSMZ16_block(tex_base, width, u, v);
                 info.srctex_color.r = (color & 0x1F) << 3;
                 info.srctex_color.g = ((color >> 5) & 0x1F) << 3;
                 info.srctex_color.b = ((color >> 10) & 0x1F) << 3;
@@ -3881,7 +3881,7 @@ namespace GS
                 break;
             case 0x3A:
             {
-                uint16_t color = read_PSMCT16SZ_block(tex_base, width, u, v);
+                uint16_t color = read_PSMZ16S_block(tex_base, width, u, v);
                 info.srctex_color.r = (color & 0x1F) << 3;
                 info.srctex_color.g = ((color >> 5) & 0x1F) << 3;
                 info.srctex_color.b = ((color >> 10) & 0x1F) << 3;
