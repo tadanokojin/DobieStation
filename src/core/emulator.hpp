@@ -56,7 +56,7 @@ class Emulator
         EmotionTiming timers;
         Firewire firewire;
         Gamepad pad;
-        GraphicsSynthesizer gs;
+        GS::GraphicsSynthesizer gs;
         GraphicsInterface gif;
         IOP iop;
         IOP_DMA iop_dma;
@@ -172,7 +172,7 @@ class Emulator
         void iop_puts();
 
         void test_iop();
-        GraphicsSynthesizer& get_gs();//used for gs dumps
+        GS::GraphicsSynthesizer& get_gs();//used for gs dumps
 
         void set_wav_output(bool state);
 };

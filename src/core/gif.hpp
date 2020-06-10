@@ -31,7 +31,7 @@ struct GIFPath
 class GraphicsInterface
 {
     private:
-        GraphicsSynthesizer* gs;
+        GS::GraphicsSynthesizer* gs;
         DMAC* dmac;
         
         GIFPath path[4];
@@ -57,7 +57,7 @@ class GraphicsInterface
 
         void flush_path3_fifo();
     public:
-        GraphicsInterface(GraphicsSynthesizer* gs, DMAC* dmac);
+        GraphicsInterface(GS::GraphicsSynthesizer* gs, DMAC* dmac);
         void reset();
         void run(int cycles);
 

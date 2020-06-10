@@ -3,11 +3,13 @@
 #include "gsregisters.hpp"
 #include "errors.hpp"
 
-void GS_REGISTERS::write64_privileged(uint32_t addr, uint64_t value)
+namespace GS
 {
-    addr &= 0x13F0;
-    switch (addr)
+    void GS_REGISTERS::write64_privileged(uint32_t addr, uint64_t value)
     {
+        addr &= 0x13F0;
+        switch (addr)
+        {
         case 0x0000:
             printf("[GS_r] Write PMODE: $%08lX_%08lX\n", value >> 32, value & 0xFFFFFFFF);
             PMODE.circuit1 = value & 0x1;
@@ -58,7 +60,7 @@ void GS_REGISTERS::write64_privileged(uint32_t addr, uint64_t value)
             SMODE2.interlaced = value & 0x1;
             SMODE2.frame_mode = value & 0x2;
             SMODE2.power_mode = (value >> 2) & 0x3;
-            if(SMODE2.interlaced && SMODE2.frame_mode) //Interlace - Read Every Line
+            if (SMODE2.interlaced && SMODE2.frame_mode) //Interlace - Read Every Line
                 deinterlace_method = NO_DEINTERLACE;
             else
                 deinterlace_method = BOB_DEINTERLACE;
@@ -213,14 +215,14 @@ void GS_REGISTERS::write64_privileged(uint32_t addr, uint64_t value)
             break;
         default:
             Errors::die("[GS_r] Unrecognized privileged write64\nAddr: $%04X\nValue: $%08lX_%08lX\n", addr, value >> 32, value & 0xFFFFFFFF);
+        }
     }
-}
 
-void GS_REGISTERS::write32_privileged(uint32_t addr, uint32_t value)
-{
-    addr &= 0x13F0;
-    switch (addr)
+    void GS_REGISTERS::write32_privileged(uint32_t addr, uint32_t value)
     {
+        addr &= 0x13F0;
+        switch (addr)
+        {
         case 0x0070:
             printf("[GS_r] Write DISPFB1: $%08X\n", value);
             DISPFB1.frame_base = (value & 0x1FF) * 2048;
@@ -280,22 +282,22 @@ void GS_REGISTERS::write32_privileged(uint32_t addr, uint32_t value)
             break;
         default:
             Errors::die("[GS_r] Unrecognized privileged write32\nAddr: $%04X\nValue: $%08X", addr, value);
+        }
     }
-}
 
-//reads from local copies only
-uint32_t GS_REGISTERS::read32_privileged(uint32_t addr)
-{
-    return read64_privileged(addr & ~0x4) >> (32 * ((addr & 0x4) != 0));
-}
-
-uint64_t GS_REGISTERS::read64_privileged(uint32_t addr)
-{
-    addr &= 0x13F0;
-
-    uint64_t reg = 0;
-    switch (addr)
+    //reads from local copies only
+    uint32_t GS_REGISTERS::read32_privileged(uint32_t addr)
     {
+        return read64_privileged(addr & ~0x4) >> (32 * ((addr & 0x4) != 0));
+    }
+
+    uint64_t GS_REGISTERS::read64_privileged(uint32_t addr)
+    {
+        addr &= 0x13F0;
+
+        uint64_t reg = 0;
+        switch (addr)
+        {
         case 0x1080:
             reg |= SIGLBLID.sig_id;
             reg |= (uint64_t)SIGLBLID.lbl_id << 32UL;
@@ -313,18 +315,18 @@ uint64_t GS_REGISTERS::read64_privileged(uint32_t addr)
             //Shadow Hearts needs this.
             reg |= 0x1B << 16;
             reg |= 0x55 << 24;
+        }
+
+        return reg;
     }
 
-    return reg;
-}
-
-bool GS_REGISTERS::write64(uint32_t addr, uint64_t value)
-{
-    addr &= 0xFFFF;
-    switch (addr)
+    bool GS_REGISTERS::write64(uint32_t addr, uint64_t value)
     {
+        addr &= 0xFFFF;
+        switch (addr)
+        {
         case 0x0060:
-            
+
         {
             uint32_t mask = value >> 32;
             uint32_t new_signal = value & mask;
@@ -344,174 +346,175 @@ bool GS_REGISTERS::write64(uint32_t addr, uint64_t value)
                 SIGLBLID.sig_id |= new_signal;
             }
         }
-            return true;
+        return true;
         case 0x0061:
             printf("[GS] FINISH Write\n");
             CSR.FINISH_requested = true;
             return true;
         case 0x0062:
             printf("[GS] LABEL requested!\n");
-        {
-            uint32_t mask = value >> 32;
-            uint32_t new_label = value & mask;
-            SIGLBLID.lbl_id &= ~mask;
-            SIGLBLID.lbl_id |= new_label;
-        }
+            {
+                uint32_t mask = value >> 32;
+                uint32_t new_label = value & mask;
+                SIGLBLID.lbl_id &= ~mask;
+                SIGLBLID.lbl_id |= new_label;
+            }
             return true;
+        }
+        return false;
     }
-    return false;
-}
 
-void GS_REGISTERS::reset(bool soft_reset)
-{
-    SMODE1.color_system = 0;
-    SMODE1.PLL_loop_divider = 0;
-    SMODE1.PLL_output_divider = 0;
-    SMODE1.PLL_reference_divider = 0;
-    SMODE1.PLL_reset = false;
-    SMODE1.YCBCR_color = false;
-
-    SMODE2.frame_mode = false;
-    SMODE2.interlaced = false;
-    SMODE2.power_mode = 0;
-
-    deinterlace_method = BOB_DEINTERLACE;
-
-    SYNCH1.horizontal_back_porch = 0;
-    SYNCH1.horizontal_front_porch = 0;
-
-    SYNCV.halflines_after_back_porch = 0;
-    SYNCV.halflines_after_front_porch = 0;
-    SYNCV.halflines_with_video = 0;
-    SYNCV.halflines_with_vsync = 0;
-    SYNCV.vertical_back_porch = 0;
-    SYNCV.vertical_front_porch = 0;
-
-    DISPFB1.frame_base = 0;
-    DISPFB1.width = 0;
-    DISPFB1.x = 0;
-    DISPFB1.y = 0;
-    DISPFB2.frame_base = 0;
-    DISPFB2.width = 0;
-    DISPFB2.y = 0;
-    DISPFB2.x = 0;
-
-    DISPLAY1.magnify_x = 1;
-    DISPLAY1.magnify_y = 1;
-    DISPLAY1.width = 0;
-    DISPLAY1.height = 0;
-    DISPLAY1.x = 0;
-    DISPLAY1.y = 0;
-
-    DISPLAY2.magnify_x = 1;
-    DISPLAY2.magnify_y = 1;
-    DISPLAY2.width = 0;
-    DISPLAY2.height = 0;
-    DISPLAY2.x = 0;
-    DISPLAY2.y = 0;
-
-    IMR.signal = true;
-    IMR.finish = true;
-    IMR.hsync = true;
-    IMR.vsync = true;
-    IMR.rawt = true;
-    if (soft_reset == false)
+    void GS_REGISTERS::reset(bool soft_reset)
     {
-        CSR.is_odd_frame = true; //First frame is always odd
-        CSR.SIGNAL_generated = false;
-        CSR.SIGNAL_stall = false;
-        CSR.SIGNAL_irq_pending = false;
-        CSR.VBLANK_generated = false;
-        CSR.FINISH_generated = false;
-        CSR.FINISH_requested = false;
-        CSR.FIFO_status = 0x1; //Empty
+        SMODE1.color_system = 0;
+        SMODE1.PLL_loop_divider = 0;
+        SMODE1.PLL_output_divider = 0;
+        SMODE1.PLL_reference_divider = 0;
+        SMODE1.PLL_reset = false;
+        SMODE1.YCBCR_color = false;
 
-        SIGLBLID.lbl_id = 0;
-        SIGLBLID.sig_id = 0;
-        SIGLBLID.backup_sig_id = 0;
+        SMODE2.frame_mode = false;
+        SMODE2.interlaced = false;
+        SMODE2.power_mode = 0;
+
+        deinterlace_method = BOB_DEINTERLACE;
+
+        SYNCH1.horizontal_back_porch = 0;
+        SYNCH1.horizontal_front_porch = 0;
+
+        SYNCV.halflines_after_back_porch = 0;
+        SYNCV.halflines_after_front_porch = 0;
+        SYNCV.halflines_with_video = 0;
+        SYNCV.halflines_with_vsync = 0;
+        SYNCV.vertical_back_porch = 0;
+        SYNCV.vertical_front_porch = 0;
+
+        DISPFB1.frame_base = 0;
+        DISPFB1.width = 0;
+        DISPFB1.x = 0;
+        DISPFB1.y = 0;
+        DISPFB2.frame_base = 0;
+        DISPFB2.width = 0;
+        DISPFB2.y = 0;
+        DISPFB2.x = 0;
+
+        DISPLAY1.magnify_x = 1;
+        DISPLAY1.magnify_y = 1;
+        DISPLAY1.width = 0;
+        DISPLAY1.height = 0;
+        DISPLAY1.x = 0;
+        DISPLAY1.y = 0;
+
+        DISPLAY2.magnify_x = 1;
+        DISPLAY2.magnify_y = 1;
+        DISPLAY2.width = 0;
+        DISPLAY2.height = 0;
+        DISPLAY2.x = 0;
+        DISPLAY2.y = 0;
+
+        IMR.signal = true;
+        IMR.finish = true;
+        IMR.hsync = true;
+        IMR.vsync = true;
+        IMR.rawt = true;
+        if (soft_reset == false)
+        {
+            CSR.is_odd_frame = true; //First frame is always odd
+            CSR.SIGNAL_generated = false;
+            CSR.SIGNAL_stall = false;
+            CSR.SIGNAL_irq_pending = false;
+            CSR.VBLANK_generated = false;
+            CSR.FINISH_generated = false;
+            CSR.FINISH_requested = false;
+            CSR.FIFO_status = 0x1; //Empty
+
+            SIGLBLID.lbl_id = 0;
+            SIGLBLID.sig_id = 0;
+            SIGLBLID.backup_sig_id = 0;
+        }
+        PMODE.circuit1 = false;
+        PMODE.circuit2 = false;
+
+        set_CRT(false, 0x2, false);
     }
-    PMODE.circuit1 = false;
-    PMODE.circuit2 = false;
 
-    set_CRT(false, 0x2, false);
-}
-
-void GS_REGISTERS::set_CRT(bool interlaced, int mode, bool frame_mode)
-{
-    SMODE2.interlaced = interlaced;
-    CRT_mode = mode;
-    SMODE2.frame_mode = frame_mode;
-}
-
-void GS_REGISTERS::get_resolution(int &w, int &h)
-{
-    /*switch (CRT_mode)
+    void GS_REGISTERS::set_CRT(bool interlaced, int mode, bool frame_mode)
     {
-    case 0x2:
-        h = 448;
-        break;
-    case 0x3:
-        h = 512;
-        break;
-    case 0x1C:
+        SMODE2.interlaced = interlaced;
+        CRT_mode = mode;
+        SMODE2.frame_mode = frame_mode;
+    }
+
+    void GS_REGISTERS::get_resolution(int& w, int& h)
+    {
+        /*switch (CRT_mode)
+        {
+        case 0x2:
+            h = 448;
+            break;
+        case 0x3:
+            h = 512;
+            break;
+        case 0x1C:
+            h = 480;
+            break;
+        default:
+            h = 448;
+        }*/
+
+        //Force the window to display everything in 4:3 for now
+        w = 640;
         h = 480;
-        break;
-    default:
-        h = 448;
-    }*/
+    }
 
-    //Force the window to display everything in 4:3 for now
-    w = 640;
-    h = 480;
-}
+    void GS_REGISTERS::get_inner_resolution(int& w, int& h)
+    {
+        if (PMODE.circuit1 && PMODE.circuit2)
+        {
+            h = std::max(DISPLAY1.height, DISPLAY2.height);
+            w = std::max(DISPLAY1.width, DISPLAY2.width);
+        }
+        else if (PMODE.circuit1)
+        {
+            h = DISPLAY1.height;
+            w = DISPLAY1.width;
+        }
+        else //Circuit 2 only or none
+        {
+            h = DISPLAY2.height;
+            w = DISPLAY2.width;
+        }
+        //TODO - Find out why some games double their height
+        if (h >= (w * 1.3))
+            h /= 2;
+    }
 
-void GS_REGISTERS::get_inner_resolution(int &w, int &h)
-{
-    if (PMODE.circuit1 && PMODE.circuit2)
+    void GS_REGISTERS::set_VBLANK(bool is_VBLANK)
     {
-        h = std::max(DISPLAY1.height, DISPLAY2.height);
-        w = std::max(DISPLAY1.width, DISPLAY2.width);
+        if (!is_VBLANK)
+        {
+            CSR.is_odd_frame = !CSR.is_odd_frame;
+        }
     }
-    else if (PMODE.circuit1)
-    {
-        h = DISPLAY1.height;
-        w = DISPLAY1.width;
-    }
-    else //Circuit 2 only or none
-    {
-        h = DISPLAY2.height;
-        w = DISPLAY2.width;
-    }
-    //TODO - Find out why some games double their height
-    if (h >= (w * 1.3))
-        h /= 2;
-}
 
-void GS_REGISTERS::set_VBLANK(bool is_VBLANK)
-{
-    if (!is_VBLANK)
+    bool GS_REGISTERS::assert_VSYNC()//returns true if the interrupt should be processed
     {
-        CSR.is_odd_frame = !CSR.is_odd_frame;
+        if (!CSR.VBLANK_generated)
+        {
+            CSR.VBLANK_generated = true;
+            return !IMR.vsync;
+        }
+        return false;
     }
-}
 
-bool GS_REGISTERS::assert_VSYNC()//returns true if the interrupt should be processed
-{
-    if (!CSR.VBLANK_generated)
+    bool GS_REGISTERS::assert_FINISH()//returns true if the interrupt should be processed
     {
-        CSR.VBLANK_generated = true;
-        return !IMR.vsync;
+        if (CSR.FINISH_requested && !CSR.FINISH_generated)
+        {
+            CSR.FINISH_requested = false;
+            CSR.FINISH_generated = true;
+            return !IMR.finish;
+        }
+        return false;
     }
-    return false;
-}
-
-bool GS_REGISTERS::assert_FINISH()//returns true if the interrupt should be processed
-{
-    if (CSR.FINISH_requested && !CSR.FINISH_generated)
-    {
-        CSR.FINISH_requested = false;
-        CSR.FINISH_generated = true;
-        return !IMR.finish;
-    }
-    return false;
 }

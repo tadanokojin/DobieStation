@@ -1773,7 +1773,7 @@ void Emulator::iop_puts()
     //printf("\n");
 }
 
-GraphicsSynthesizer& Emulator::get_gs()
+GS::GraphicsSynthesizer& Emulator::get_gs()
 {
     return gs;
 }

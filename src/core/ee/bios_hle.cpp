@@ -5,7 +5,7 @@
 #include "../emulator.hpp"
 #include "../gs.hpp"
 
-BIOS_HLE::BIOS_HLE(Emulator* e, GraphicsSynthesizer* gs) : e(e), gs(gs)
+BIOS_HLE::BIOS_HLE(Emulator* e, GS::GraphicsSynthesizer* gs) : e(e), gs(gs)
 {
 
 }

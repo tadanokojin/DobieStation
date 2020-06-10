@@ -29,13 +29,16 @@ struct INTC_handler
     uint32_t arg;
 };
 
-class GraphicsSynthesizer;
+namespace GS
+{
+    class GraphicsSynthesizer;
+}
 
 class BIOS_HLE
 {
     private:
         Emulator* e;
-        GraphicsSynthesizer* gs;
+        GS::GraphicsSynthesizer* gs;
         std::vector<thread_hle> threads;
         std::vector<INTC_handler> intc_handlers;
 
@@ -43,7 +46,7 @@ class BIOS_HLE
         void store_INTC_handler(INTC_handler& h);
         void assemble_interrupt_handler();
     public:
-        BIOS_HLE(Emulator* e, GraphicsSynthesizer* gs);
+        BIOS_HLE(Emulator* e, GS::GraphicsSynthesizer* gs);
 
         void reset();
 

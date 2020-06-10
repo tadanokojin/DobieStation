@@ -3,7 +3,7 @@
 #include "gif.hpp"
 #include "gs.hpp"
 
-GraphicsInterface::GraphicsInterface(GraphicsSynthesizer *gs, DMAC* dmac) : gs(gs), dmac(dmac)
+GraphicsInterface::GraphicsInterface(GS::GraphicsSynthesizer *gs, DMAC* dmac) : gs(gs), dmac(dmac)
 {
 
 }
