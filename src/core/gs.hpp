@@ -25,7 +25,7 @@ namespace GS
 
             GS_REGISTERS reg;
 
-            GraphicsSynthesizerThread gs_thread;
+            Thread gs_thread;
         public:
             GraphicsSynthesizer(INTC* intc);
             ~GraphicsSynthesizer();

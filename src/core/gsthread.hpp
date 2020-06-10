@@ -334,7 +334,7 @@ namespace GS
     typedef void (*GSDrawPixelPrologue)(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
     typedef void (*GSTexLookupPrologue)(int16_t u, int16_t v, TexLookupInfo* info);
 
-    class GraphicsSynthesizerThread
+    class Thread
     {
         private:
             #ifdef _MSC_VER
@@ -513,8 +513,8 @@ namespace GS
             void load_state(std::ifstream* state);
             void save_state(std::ofstream* state);
         public:
-            GraphicsSynthesizerThread();
-            ~GraphicsSynthesizerThread();
+            Thread();
+            ~Thread();
 
             // safe to access from emu thread
             void send_message(fifo::message message);

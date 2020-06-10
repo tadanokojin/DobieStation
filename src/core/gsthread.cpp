@@ -223,10 +223,10 @@ namespace GS
         return bark / (x2 - x1);
     }
 
-    const unsigned int GraphicsSynthesizerThread::max_vertices[8] = {1, 2, 2, 3, 3, 3, 2, 0};
-    constexpr REG_64 GraphicsSynthesizerThread::abi_args[4];
+    const unsigned int Thread::max_vertices[8] = {1, 2, 2, 3, 3, 3, 2, 0};
+    constexpr REG_64 Thread::abi_args[4];
 
-    GraphicsSynthesizerThread::GraphicsSynthesizerThread()
+    Thread::Thread()
         : frame_complete(false), local_mem(nullptr), jit_draw_pixel_block("GS-pixel"), jit_tex_lookup_block("GS-texture"),
         emitter_dp(&jit_draw_pixel_block),
           emitter_tex(&jit_tex_lookup_block)
@@ -264,12 +264,12 @@ namespace GS
         jit_tex_lookup_heap.flush_all_blocks();
     }
 
-    GraphicsSynthesizerThread::~GraphicsSynthesizerThread()
+    Thread::~Thread()
     {
         delete[] local_mem;
     }
 
-    void GraphicsSynthesizerThread::wait_for_return(fifo::return_command cmd, fifo::return_message &msg)
+    void Thread::wait_for_return(fifo::return_command cmd, fifo::return_message &msg)
     {
         printf("[GS] Waiting for return\n");
 
@@ -315,21 +315,21 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::send_message(fifo::message message)
+    void Thread::send_message(fifo::message message)
     {
         //printf("[GS] Notifying gs thread of new data\n");
         message_queue->push(message);
         send_data = true;
     }
 
-    void GraphicsSynthesizerThread::wake_thread()
+    void Thread::wake_thread()
     {
         printf("[GS] Waking GS Thread\n");
         std::unique_lock<std::mutex> lk(data_mutex);
         notifier.notify_one();
     }
 
-    void GraphicsSynthesizerThread::exit()
+    void Thread::exit()
     {
         if (thread.joinable())
         {
@@ -342,7 +342,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::event_loop()
+    void Thread::event_loop()
     {
         printf("[GS_t] Starting GS Thread\n");
 
@@ -552,7 +552,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::reset()
+    void Thread::reset()
     {
         exit();
 
@@ -591,10 +591,10 @@ namespace GS
 
         message_queue = std::make_unique<fifo::fifo_t>();
         return_queue = std::make_unique<fifo::return_fifo_t>();
-        thread = std::thread(&GraphicsSynthesizerThread::event_loop, this);
+        thread = std::thread(&Thread::event_loop, this);
     }
 
-    void GraphicsSynthesizerThread::soft_reset()
+    void Thread::soft_reset()
     {
         COLCLAMP = true;
         SCANMSK = 0;
@@ -613,7 +613,7 @@ namespace GS
         update_tex_lookup_state();
     }
 
-    void GraphicsSynthesizerThread::memdump(uint32_t* target, uint16_t& width, uint16_t& height)
+    void Thread::memdump(uint32_t* target, uint16_t& width, uint16_t& height)
     {
         SCISSOR s = current_ctx->scissor;
         width = std::min(static_cast<uint16_t>(s.x2 - s.x1), (uint16_t)current_ctx->frame.width);
@@ -653,7 +653,7 @@ namespace GS
     }
 
     //Calculates DISPLAY bounding box
-    bool GraphicsSynthesizerThread::is_in_display(DISPLAY &display, int32_t x_start, int32_t y_start, int32_t x, int32_t y)
+    bool Thread::is_in_display(DISPLAY &display, int32_t x_start, int32_t y_start, int32_t x, int32_t y)
     {
         //Inside X
         if (x >= x_start && x < (x_start + display.width))
@@ -668,7 +668,7 @@ namespace GS
         return false;
     }
 
-    uint32_t GraphicsSynthesizerThread::get_CRT_color(DISPFB &dispfb, int32_t x, int32_t y)
+    uint32_t Thread::get_CRT_color(DISPFB &dispfb, int32_t x, int32_t y)
     {
         switch (dispfb.format)
         {
@@ -685,7 +685,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::render_CRT(uint32_t* target)
+    void Thread::render_CRT(uint32_t* target)
     {
         int32_t width;
         int32_t height;
@@ -878,7 +878,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::write64(uint32_t addr, uint64_t value)
+    void Thread::write64(uint32_t addr, uint64_t value)
     {
         if (reg.write64(addr, value))
             return;
@@ -1246,7 +1246,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::set_RGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a, float q)
+    void Thread::set_RGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a, float q)
     {
         RGBAQ.r = r;
         RGBAQ.g = g;
@@ -1255,21 +1255,21 @@ namespace GS
         RGBAQ.q = q;
     }
 
-    void GraphicsSynthesizerThread::set_ST(uint32_t s, uint32_t t)
+    void Thread::set_ST(uint32_t s, uint32_t t)
     {
         ST.s = *(float*)&s;
         ST.t = *(float*)&t;
         printf("ST: (%f, %f) ($%08X $%08X)\n", ST.s, ST.t, s, t);
     }
 
-    void GraphicsSynthesizerThread::set_UV(uint16_t u, uint16_t v)
+    void Thread::set_UV(uint16_t u, uint16_t v)
     {
         UV.u = u;
         UV.v = v;
         printf("UV: ($%04X, $%04X)\n", UV.u, UV.v);
     }
 
-    void GraphicsSynthesizerThread::set_XYZ(uint32_t x, uint32_t y, uint32_t z, bool drawing_kick)
+    void Thread::set_XYZ(uint32_t x, uint32_t y, uint32_t z, bool drawing_kick)
     {
         current_vtx.x = x;
         current_vtx.y = y;
@@ -1277,7 +1277,7 @@ namespace GS
         vertex_kick(drawing_kick);
     }
 
-    void GraphicsSynthesizerThread::set_XYZF(uint32_t x, uint32_t y, uint32_t z, uint8_t fog, bool drawing_kick)
+    void Thread::set_XYZF(uint32_t x, uint32_t y, uint32_t z, uint8_t fog, bool drawing_kick)
     {
         current_vtx.x = x;
         current_vtx.y = y;
@@ -1286,67 +1286,67 @@ namespace GS
         vertex_kick(drawing_kick);
     }
 
-    uint32_t GraphicsSynthesizerThread::read_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint32_t Thread::read_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = swizzle::addr_PSMCT32(base / 256, width / 64, x, y);
         return *(uint32_t*)&local_mem[addr];
     }
 
-    uint32_t GraphicsSynthesizerThread::read_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint32_t Thread::read_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = swizzle::addr_PSMZ32(base / 256, width / 64, x, y);
         return *(uint32_t*)&local_mem[addr];
     }
 
-    uint16_t GraphicsSynthesizerThread::read_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint16_t Thread::read_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = swizzle::addr_PSMCT16(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
-    uint16_t GraphicsSynthesizerThread::read_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint16_t Thread::read_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = swizzle::addr_PSMCT16S(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
-    uint16_t GraphicsSynthesizerThread::read_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint16_t Thread::read_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = swizzle::addr_PSMZ16(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
-    uint16_t GraphicsSynthesizerThread::read_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint16_t Thread::read_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = swizzle::addr_PSMZ16S(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
-    uint8_t GraphicsSynthesizerThread::read_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint8_t Thread::read_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = swizzle::addr_PSMT8(base / 256, width / 64, x, y);
         return local_mem[addr];
     }
 
-    uint8_t GraphicsSynthesizerThread::read_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
+    uint8_t Thread::read_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
         uint32_t addr = swizzle::addr_PSMT4(base / 256, width / 64, x, y);
         return (local_mem[addr >> 1] >> ((addr & 1) << 2)) & 0x0f;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
+    void Thread::write_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
         uint32_t addr = swizzle::addr_PSMCT32(base / 256, width / 64, x, y);
         *(uint32_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
+    void Thread::write_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
         uint32_t addr = swizzle::addr_PSMZ32(base / 256, width / 64, x, y);
         *(uint32_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
+    void Thread::write_PSMCT24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
         uint32_t addr = swizzle::addr_PSMCT32(base / 256, width / 64, x, y);
         uint32_t old_mem = *(uint32_t*)&local_mem[addr];
@@ -1354,7 +1354,7 @@ namespace GS
         *(uint32_t*)&local_mem[addr] = (old_mem & 0xFF000000) | value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMZ24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
+    void Thread::write_PSMZ24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
         uint32_t addr = swizzle::addr_PSMZ32(base / 256, width / 64, x, y);
         uint32_t old_mem = *(uint32_t*)&local_mem[addr];
@@ -1362,37 +1362,37 @@ namespace GS
         *(uint32_t*)&local_mem[addr] = (old_mem & 0xFF000000) | value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
+    void Thread::write_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
         uint32_t addr = swizzle::addr_PSMCT16(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
+    void Thread::write_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
         uint32_t addr = swizzle::addr_PSMCT16S(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
+    void Thread::write_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
         uint32_t addr = swizzle::addr_PSMZ16(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
+    void Thread::write_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
         uint32_t addr = swizzle::addr_PSMZ16S(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
+    void Thread::write_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
     {
         uint32_t addr = swizzle::addr_PSMT8(base / 256, width / 64, x, y);
         local_mem[addr] = value;
     }
 
-    void GraphicsSynthesizerThread::write_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
+    void Thread::write_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
     {
         uint32_t addr = swizzle::addr_PSMT4(base / 256, width / 64, x, y);
         int shift = (addr & 1) << 2;
@@ -1403,7 +1403,7 @@ namespace GS
 
     //The "vertex kick" is the name given to the process of placing a vertex in the vertex queue.
     //If drawing_kick is true, and enough vertices are available, then the polygon is rendered.
-    void GraphicsSynthesizerThread::vertex_kick(bool drawing_kick)
+    void Thread::vertex_kick(bool drawing_kick)
     {
         for (int i = num_vertices; i > 0; i--)
             vtx_queue[i] = vtx_queue[i - 1];
@@ -1476,7 +1476,7 @@ namespace GS
             render_primitive();
     }
 
-    void GraphicsSynthesizerThread::render_primitive()
+    void Thread::render_primitive()
     {
         // ignore nop draw
         if (current_ctx->scissor.empty())
@@ -1508,7 +1508,7 @@ namespace GS
         }
     }
 
-    bool GraphicsSynthesizerThread::depth_test(int32_t x, int32_t y, uint32_t z)
+    bool Thread::depth_test(int32_t x, int32_t y, uint32_t z)
     {
         uint32_t base = current_ctx->zbuf.base_pointer;
         uint32_t width = current_ctx->frame.width;
@@ -1580,7 +1580,7 @@ namespace GS
         return false;
     }
 
-    uint32_t GraphicsSynthesizerThread::lookup_frame_color(int32_t x, int32_t y)
+    uint32_t Thread::lookup_frame_color(int32_t x, int32_t y)
     {
         if (frame_color_looked_up)
         {
@@ -1625,7 +1625,7 @@ namespace GS
         return frame_color;
     }
 
-    void GraphicsSynthesizerThread::draw_pixel(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color)
+    void Thread::draw_pixel(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color)
     {
         frame_color_looked_up = false;
         x >>= 4;
@@ -1946,7 +1946,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::recompile_draw_pixel_prologue()
+    void Thread::recompile_draw_pixel_prologue()
     {
         jit_draw_pixel_block.clear();
 
@@ -1986,7 +1986,7 @@ namespace GS
                 insert_block(~0ULL, &jit_draw_pixel_block)->code_start;
     }
 
-    void GraphicsSynthesizerThread::render_point()
+    void Thread::render_point()
     {
         Vertex v1 = vtx_queue[0]; v1.to_relative(current_ctx->xyoffset);
         if (v1.x < current_ctx->scissor.x1 || v1.x > current_ctx->scissor.x2 ||
@@ -2041,7 +2041,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::render_line()
+    void Thread::render_line()
     {
         printf("[GS_t] Rendering line!\n");
         Vertex v1 = vtx_queue[1]; v1.to_relative(current_ctx->xyoffset);
@@ -2159,7 +2159,7 @@ namespace GS
     // 0 if they it's on the same line
     // Negative value if they are in a clockwise order
     // Basicly the cross product of (v2 - v1) and (v3 - v1) vectors
-    int32_t GraphicsSynthesizerThread::orient2D(const Vertex &v1, const Vertex &v2, const Vertex &v3)
+    int32_t Thread::orient2D(const Vertex &v1, const Vertex &v2, const Vertex &v3)
     {
         return (v2.x - v1.x) * (v3.y - v1.y) - (v3.x - v1.x) * (v2.y - v1.y);
     }
@@ -2204,7 +2204,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::render_triangle2() {
+    void Thread::render_triangle2() {
         // This is a "scanline" algorithm which reduces flops/pixel
         //  at the cost of a longer setup time.
 
@@ -2460,7 +2460,7 @@ namespace GS
      * @param scx2    - right x scissor (fp px)
      * @param tex_info - texture data
      */
-    void GraphicsSynthesizerThread::render_half_triangle(float x0, float x1, int y0, int y1, VertexF &x_step,
+    void Thread::render_half_triangle(float x0, float x1, int y0, int y1, VertexF &x_step,
                                                          VertexF &y_step, VertexF &init, float step_x0, float step_x1,
                                                          float scx1, float scx2, TexLookupInfo& tex_info) {
 
@@ -2537,7 +2537,7 @@ namespace GS
 
     }
 
-    void GraphicsSynthesizerThread::render_triangle()
+    void Thread::render_triangle()
     {
         printf("[GS_t] Rendering triangle!\n");
 
@@ -2783,7 +2783,7 @@ namespace GS
 
     }
 
-    void GraphicsSynthesizerThread::render_sprite()
+    void Thread::render_sprite()
     {
         printf("[GS_t] Rendering sprite!\n");
         Vertex v1 = vtx_queue[1]; v1.to_relative(current_ctx->xyoffset);
@@ -2870,7 +2870,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::write_HWREG(uint64_t data)
+    void Thread::write_HWREG(uint64_t data)
     {
         int ppd = 0; //pixels per doubleword (64-bits)
 
@@ -3054,7 +3054,7 @@ namespace GS
         }
     }
 
-    uint128_t GraphicsSynthesizerThread::local_to_host()
+    uint128_t Thread::local_to_host()
     {
         int ppd = 0; //pixels per doubleword (64-bits)
         uint128_t return_data;
@@ -3207,7 +3207,7 @@ namespace GS
         return return_data;
     }
 
-    void GraphicsSynthesizerThread::unpack_PSMCT24(uint64_t data, int offset, bool z_format)
+    void Thread::unpack_PSMCT24(uint64_t data, int offset, bool z_format)
     {
         int bytes_unpacked = 0;
         for (int i = offset * 24; bytes_unpacked < 3 && i < 64; i += 8)
@@ -3231,7 +3231,7 @@ namespace GS
         }
     }
 
-    uint64_t GraphicsSynthesizerThread::pack_PSMCT24(bool z_format)
+    uint64_t Thread::pack_PSMCT24(bool z_format)
     {
         int data_in_output = 0;
         uint64_t output_color = 0;
@@ -3296,7 +3296,7 @@ namespace GS
         return output_color;
     }
 
-    void GraphicsSynthesizerThread::local_to_local()
+    void Thread::local_to_local()
     {
         printf("[GS_t] Local to local transfer\n");
         printf("(%d, %d) -> (%d, %d)\n", TRXPOS.source_x, TRXPOS.source_y, TRXPOS.dest_x, TRXPOS.dest_y);
@@ -3482,7 +3482,7 @@ namespace GS
         TRXDIR = 3;
     }
 
-    uint8_t GraphicsSynthesizerThread::get_16bit_alpha(uint16_t color)
+    uint8_t Thread::get_16bit_alpha(uint16_t color)
     {
         if (color & (1 << 15))
             return TEXA.alpha1;
@@ -3491,7 +3491,7 @@ namespace GS
         return TEXA.alpha0;
     }
 
-    int16_t GraphicsSynthesizerThread::multiply_tex_color(int16_t tex_color, int16_t frag_color)
+    int16_t Thread::multiply_tex_color(int16_t tex_color, int16_t frag_color)
     {
         int16_t temp_color;
         if (frag_color != 0x80)
@@ -3511,7 +3511,7 @@ namespace GS
         return temp_color;
     }
 
-    void GraphicsSynthesizerThread::calculate_LOD(TexLookupInfo &info)
+    void Thread::calculate_LOD(TexLookupInfo &info)
     {
         //Need to reset the values here
         //If the back of a triangle is MIP level 1 and the front is MIP level 0, it will have the wrong value
@@ -3612,7 +3612,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::tex_lookup(int16_t u, int16_t v, TexLookupInfo& info)
+    void Thread::tex_lookup(int16_t u, int16_t v, TexLookupInfo& info)
     {
         bool bilinear_filter = false;
 
@@ -3715,7 +3715,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::tex_lookup_int(int16_t u, int16_t v, TexLookupInfo& info, bool forced_lookup)
+    void Thread::tex_lookup_int(int16_t u, int16_t v, TexLookupInfo& info, bool forced_lookup)
     {
         switch (current_ctx->clamp.wrap_s)
         {
@@ -3912,7 +3912,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::recompile_tex_lookup_prologue()
+    void Thread::recompile_tex_lookup_prologue()
     {
         jit_tex_lookup_block.clear();
 
@@ -3953,7 +3953,7 @@ namespace GS
                 insert_block(~0ULL, &jit_tex_lookup_block)->code_start;
     }
 
-    void GraphicsSynthesizerThread::clut_lookup(uint8_t entry, RGBAQ_REG &tex_color)
+    void Thread::clut_lookup(uint8_t entry, RGBAQ_REG &tex_color)
     {
         uint32_t clut_addr = current_ctx->tex0.CLUT_offset;
 
@@ -3987,7 +3987,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::clut_CSM2_lookup(uint8_t entry, RGBAQ_REG &tex_color)
+    void Thread::clut_CSM2_lookup(uint8_t entry, RGBAQ_REG &tex_color)
     {
         uint16_t color = *(uint16_t*)&clut_cache[entry << 1];
         tex_color.r = (color & 0x1F) << 3;
@@ -3996,7 +3996,7 @@ namespace GS
         tex_color.a = get_16bit_alpha(color);
     }
 
-    void GraphicsSynthesizerThread::reload_clut(GSContext& context)
+    void Thread::reload_clut(GSContext& context)
     {
         int eight_bit = false;
         switch (context.tex0.format)
@@ -4116,7 +4116,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::update_draw_pixel_state()
+    void Thread::update_draw_pixel_state()
     {
         draw_pixel_state = 0;
 
@@ -4146,7 +4146,7 @@ namespace GS
         draw_pixel_state |= (uint64_t)(current_ctx->frame.mask != 0) << 55UL;
     }
 
-    void GraphicsSynthesizerThread::update_tex_lookup_state()
+    void Thread::update_tex_lookup_state()
     {
         tex_lookup_state = 0;
 
@@ -4168,7 +4168,7 @@ namespace GS
         tex_lookup_state |= (uint64_t)current_PRMODE->fog << 42UL;
     }
 
-    uint8_t* GraphicsSynthesizerThread::get_jitted_draw_pixel(uint64_t state)
+    uint8_t* Thread::get_jitted_draw_pixel(uint64_t state)
     {
         GSPixelJitBlockRecord* found_block = jit_draw_pixel_heap.find_block(state);
         if (!found_block)
@@ -4179,7 +4179,7 @@ namespace GS
         return (uint8_t*)found_block->code_start;
     }
 
-    uint8_t* GraphicsSynthesizerThread::get_jitted_tex_lookup(uint64_t state)
+    uint8_t* Thread::get_jitted_tex_lookup(uint64_t state)
     {
         GSTextureJitBlockRecord* found_block = jit_tex_lookup_heap.find_block(state);
         if (!found_block)
@@ -4190,7 +4190,7 @@ namespace GS
         return (uint8_t*)found_block->code_start;
     }
 
-    GSPixelJitBlockRecord* GraphicsSynthesizerThread::recompile_draw_pixel(uint64_t state)
+    GSPixelJitBlockRecord* Thread::recompile_draw_pixel(uint64_t state)
     {
         jit_draw_pixel_block.clear();
 
@@ -4447,7 +4447,7 @@ namespace GS
         return jit_draw_pixel_heap.insert_block(state, &jit_draw_pixel_block);
     }
 
-    void GraphicsSynthesizerThread::recompile_alpha_test()
+    void Thread::recompile_alpha_test()
     {
         //If the condition is NEVER, do not compare and just proceed with the failure condition
         if (current_ctx->test.alpha_method != 0)
@@ -4521,7 +4521,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::recompile_depth_test()
+    void Thread::recompile_depth_test()
     {
         //If depth test is set to NEVER, don't draw anything
         if (current_ctx->test.depth_method == 0)
@@ -4664,7 +4664,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::recompile_alpha_blend()
+    void Thread::recompile_alpha_blend()
     {
         printf("Alpha blend: %d %d %d %d\n", current_ctx->alpha.spec_A, current_ctx->alpha.spec_B,
                current_ctx->alpha.spec_C, current_ctx->alpha.spec_D);
@@ -4823,7 +4823,7 @@ namespace GS
             emitter_dp.set_jump_dest(pabe_fail_end);
     }
 
-    void GraphicsSynthesizerThread::jit_call_func(Emitter64& emitter, uint64_t addr)
+    void Thread::jit_call_func(Emitter64& emitter, uint64_t addr)
     {
     #ifdef _MSC_VER
         emitter.SUB64_REG_IMM(0x20, RSP);
@@ -4836,7 +4836,7 @@ namespace GS
     #endif
     }
 
-    void GraphicsSynthesizerThread::jit_epilogue_draw_pixel()
+    void Thread::jit_epilogue_draw_pixel()
     {
         emitter_dp.MOVAPS_FROM_MEM(RBP, XMM0, 0);
         emitter_dp.MOVAPS_FROM_MEM(RBP, XMM1, 0x10);
@@ -4852,7 +4852,7 @@ namespace GS
         emitter_dp.RET();
     }
 
-    GSTextureJitBlockRecord* GraphicsSynthesizerThread::recompile_tex_lookup(uint64_t state)
+    GSTextureJitBlockRecord* Thread::recompile_tex_lookup(uint64_t state)
     {
         jit_tex_lookup_block.clear();
 
@@ -5272,7 +5272,7 @@ namespace GS
         return jit_tex_lookup_heap.insert_block(state, &jit_tex_lookup_block);
     }
 
-    void GraphicsSynthesizerThread::recompile_clut_lookup()
+    void Thread::recompile_clut_lookup()
     {
         //Input: RDI (index)
         //Output: RAX (color in 32-bit format)
@@ -5308,7 +5308,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::recompile_csm2_lookup()
+    void Thread::recompile_csm2_lookup()
     {
         //color = *(uint16_t*)&clut_cache[index << 1]
         emitter_tex.load_addr((uint64_t)&clut_cache, RAX);
@@ -5320,7 +5320,7 @@ namespace GS
         recompile_convert_16bit_tex(RAX, RDI, RSI);
     }
 
-    void GraphicsSynthesizerThread::recompile_convert_16bit_tex(REG_64 color, REG_64 temp, REG_64 temp2)
+    void Thread::recompile_convert_16bit_tex(REG_64 color, REG_64 temp, REG_64 temp2)
     {
         //R
         emitter_tex.MOV32_REG(color, temp);
@@ -5367,7 +5367,7 @@ namespace GS
         emitter_tex.MOV32_REG(temp2, color);
     }
 
-    void GraphicsSynthesizerThread::load_state(std::ifstream *state)
+    void Thread::load_state(std::ifstream *state)
     {
         state->read((char*)local_mem, 1024 * 1024 * 4);
         state->read((char*)&IMR, sizeof(IMR));
@@ -5424,7 +5424,7 @@ namespace GS
         state->read((char*)&num_vertices, sizeof(num_vertices));
     }
 
-    void GraphicsSynthesizerThread::save_state(std::ofstream *state)
+    void Thread::save_state(std::ofstream *state)
     {
         state->write((char*)local_mem, 1024 * 1024 * 4);
         state->write((char*)&IMR, sizeof(IMR));
