@@ -13,16 +13,167 @@ namespace GS
 {
     //Swizzling tables - we declare these outside the class to prevent a stack overflow
     //Globals are allocated in a different memory segment of the executable
+    namespace swizzle
+    {
+        template<int XS, int YS, int ZS>
+        struct table
+        {
+            table() = default;
 
-    static SwizzleTable<32,32,64> page_PSMCT32;
-    static SwizzleTable<32,32,64> page_PSMCT32Z;
-    static SwizzleTable<32,64,64> page_PSMCT16;
-    static SwizzleTable<32,64,64> page_PSMCT16S;
-    static SwizzleTable<32,64,64> page_PSMCT16Z;
-    static SwizzleTable<32,64,64> page_PSMCT16SZ;
-    static SwizzleTable<32,64,128> page_PSMCT8;
-    static SwizzleTable<32,128,128> page_PSMCT4;
+            uint32_t& get(int x, int y, int z)
+            {
+                return data[x * YS * ZS + y * ZS + z];
+            }
 
+            uint32_t data[XS * YS * ZS];
+        };
+
+        static table<32, 32, 64> page_PSMCT32;
+        static table<32, 32, 64> page_PSMCT32Z;
+        static table<32, 64, 64> page_PSMCT16;
+        static table<32, 64, 64> page_PSMCT16S;
+        static table<32, 64, 64> page_PSMCT16Z;
+        static table<32, 64, 64> page_PSMCT16SZ;
+        static table<32, 64, 128> page_PSMCT8;
+        static table<32, 128, 128> page_PSMCT4;
+
+        inline uint32_t addr_PSMCT32(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            uint32_t page = ((block >> 5) + (y >> 5)* width + (x >> 6));
+            //uint32_t addr = (page << 11) + page_PSMCT32[block & 0x1F][y & 0x1F][x & 0x3F];
+            uint32_t addr = (page << 11) + page_PSMCT32.get(block & 0x1F, y & 0x1F, x & 0x3F);
+            return (addr << 2) & 0x003FFFFC;
+        }
+
+        inline uint32_t addr_PSMZ32(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            uint32_t page = ((block >> 5) + (y >> 5)* width + (x >> 6));
+            uint32_t addr = (page << 11) + page_PSMCT32Z.get(block & 0x1F, y & 0x1F, x & 0x3F);
+            return (addr << 2) & 0x003FFFFC;
+        }
+
+        inline uint32_t addr_PSMCT16(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            uint32_t page = ((block >> 5) + (y >> 6)* width + (x >> 6));
+            uint32_t addr = (page << 12) + page_PSMCT16.get(block & 0x1F, y & 0x3F, x & 0x3F);
+            return (addr << 1) & 0x003FFFFE;
+        }
+
+        inline uint32_t addr_PSMCT16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            uint32_t page = ((block >> 5) + (y >> 6)* width + (x >> 6));
+            uint32_t addr = (page << 12) + page_PSMCT16S.get(block & 0x1F, y & 0x3F, x & 0x3F);
+            return (addr << 1) & 0x003FFFFE;
+        }
+
+        inline uint32_t addr_PSMZ16(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            uint32_t page = ((block >> 5) + (y >> 6)* width + (x >> 6));
+            uint32_t addr = (page << 12) + page_PSMCT16Z.get(block & 0x1F, y & 0x3F, x & 0x3F);
+            return (addr << 1) & 0x003FFFFE;
+        }
+
+        inline uint32_t addr_PSMZ16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            uint32_t page = ((block >> 5) + (y >> 6)* width + (x >> 6));
+            uint32_t addr = (page << 12) + page_PSMCT16SZ.get(block & 0x1F, y & 0x3F, x & 0x3F);
+            return (addr << 1) & 0x003FFFFE;
+        }
+
+        inline uint32_t addr_PSMT8(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            uint32_t page = ((block >> 5) + (y >> 6)* (width >> 1) + (x >> 7));
+            uint32_t addr = (page << 13) + page_PSMCT8.get(block & 0x1F, y & 0x3F, x & 0x7F);
+            return addr & 0x003FFFFF;
+        }
+
+        inline uint32_t addr_PSMT4(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            uint32_t page = ((block >> 5) + (y >> 7)* (width >> 1) + (x >> 7));
+            uint32_t addr = (page << 14) + page_PSMCT4.get(block & 0x1F, y & 0x7F, x & 0x7F);
+            return addr & 0x007FFFFF;
+        }
+
+        inline uint32_t blockid_PSMCT32(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            return block + ((y & ~0x1F) * (width / 64)) + ((x >> 1) & ~0x1F) + blockTable32[(y >> 3) & 0x3][(x >> 3) & 0x7];
+        }
+
+        inline uint32_t blockid_PSMZ32(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            return block + ((y & ~0x1F) * (width / 64)) + ((x >> 1) & ~0x1F) + blockTable32Z[(y >> 3) & 0x3][(x >> 3) & 0x7];
+        }
+
+        inline uint32_t blockid_PSMCT16(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            return block + ((y >> 1) & ~0x1F)* (width / 64) + ((x >> 1) & ~0x1F) + blockTable16[(y >> 3) & 7][(x >> 4) & 3];
+        }
+
+        inline uint32_t blockid_PSMCT16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            return block + ((y >> 1) & ~0x1F)* (width / 64) + ((x >> 1) & ~0x1F) + blockTable16S[(y >> 3) & 7][(x >> 4) & 3];
+        }
+
+        inline uint32_t blockid_PSMZ16(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            return block + ((y >> 1) & ~0x1F)* (width / 64) + ((x >> 1) & ~0x1F) + blockTable16Z[(y >> 3) & 7][(x >> 4) & 3];
+        }
+
+        inline uint32_t blockid_PSMZ16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            return block + ((y >> 1) & ~0x1F)* (width / 64) + ((x >> 1) & ~0x1F) + blockTable16SZ[(y >> 3) & 7][(x >> 4) & 3];
+        }
+
+        inline uint32_t blockid_PSMT8(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            return block + ((y >> 1) & ~0x1F)* (width / 128) + ((x >> 2) & ~0x1F) + blockTable8[(y >> 4) & 3][(x >> 4) & 7];
+        }
+
+        inline uint32_t blockid_PSMT4(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
+        {
+            return block + ((y >> 2) & ~0x1f)* (width >> 7) + ((x >> 2) & ~0x1f) + blockTable4[(y >> 4) & 7][(x >> 5) & 3];
+        }
+
+        void init_tables()
+        {
+            for (int block = 0; block < 32; block++)
+            {
+                for (int y = 0; y < 32; y++)
+                {
+                    for (int x = 0; x < 64; x++)
+                    {
+                        uint32_t column = columnTable32[y & 0x7][x & 0x7];
+                        swizzle::page_PSMCT32.get(block, y, x) = (blockid_PSMCT32(block, 0, x, y) << 6) + column;
+                        swizzle::page_PSMCT32Z.get(block, y, x) = (blockid_PSMZ32(block, 0, x, y) << 6) + column;
+                    }
+                }
+
+                for (int y = 0; y < 64; y++)
+                {
+                    for (int x = 0; x < 64; x++)
+                    {
+                        uint32_t column = columnTable16[y & 0x7][x & 0xF];
+                        page_PSMCT16.get(block, y, x) = (blockid_PSMCT16(block, 0, x, y) << 7) + column;
+                        page_PSMCT16S.get(block, y, x) = (blockid_PSMCT16S(block, 0, x, y) << 7) + column;
+                        page_PSMCT16Z.get(block, y, x) = (blockid_PSMZ16(block, 0, x, y) << 7) + column;
+                        page_PSMCT16SZ.get(block, y, x) = (blockid_PSMZ16S(block, 0, x, y) << 7) + column;
+                    }
+                }
+
+                for (int y = 0; y < 64; y++)
+                {
+                    for (int x = 0; x < 128; x++)
+                        page_PSMCT8.get(block, y, x) = (blockid_PSMT8(block, 0, x, y) << 8) + columnTable8[y & 0xF][x & 0xF];
+                }
+
+                for (int y = 0; y < 128; y++)
+                {
+                    for (int x = 0; x < 128; x++)
+                        page_PSMCT4.get(block, y, x) = (blockid_PSMT4(block, 0, x, y) << 9) + columnTable4[y & 15][x & 31];
+                }
+            }
+        }
+    }
     #define printf(fmt, ...)(0)
 
     #define GS_JIT
@@ -81,42 +232,7 @@ namespace GS
           emitter_tex(&jit_tex_lookup_block)
     {
         //Initialize swizzling tables
-        for (int block = 0; block < 32; block++)
-        {
-            for (int y = 0; y < 32; y++)
-            {
-                for (int x = 0; x < 64; x++)
-                {
-                    uint32_t column = columnTable32[y & 0x7][x & 0x7];
-                    page_PSMCT32.get(block,y,x) = (blockid_PSMCT32(block, 0, x, y) << 6) + column;
-                    page_PSMCT32Z.get(block,y,x) = (blockid_PSMZ32(block, 0, x, y) << 6) + column;
-                }
-            }
-
-            for (int y = 0; y < 64; y++)
-            {
-                for (int x = 0; x < 64; x++)
-                {
-                    uint32_t column = columnTable16[y & 0x7][x & 0xF];
-                    page_PSMCT16.get(block,y,x) = (blockid_PSMCT16(block, 0, x, y) << 7) + column;
-                    page_PSMCT16S.get(block,y,x) = (blockid_PSMCT16S(block, 0, x, y) << 7) + column;
-                    page_PSMCT16Z.get(block,y,x) = (blockid_PSMZ16(block, 0, x, y) << 7) + column;
-                    page_PSMCT16SZ.get(block,y,x) = (blockid_PSMZ16S(block, 0, x, y) << 7) + column;
-                }
-            }
-
-            for (int y = 0; y < 64; y++)
-            {
-                for (int x = 0; x < 128; x++)
-                    page_PSMCT8.get(block,y,x) = (blockid_PSMT8(block, 0, x, y) << 8) + columnTable8[y & 0xF][x & 0xF];
-            }
-
-            for (int y = 0; y < 128; y++)
-            {
-                for (int x = 0; x < 128; x++)
-                    page_PSMCT4.get(block,y,x) = (blockid_PSMT4(block, 0, x, y) << 9) + columnTable4[y & 15][x & 31];
-            }
-        }
+        swizzle::init_tables();
 
         //Initialize lookup table used for LOD calculation
         for (int i = 0; i < 32768; i++)
@@ -1170,166 +1286,69 @@ namespace GS
         vertex_kick(drawing_kick);
     }
 
-    uint32_t GraphicsSynthesizerThread::blockid_PSMCT32(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        return block + ((y & ~0x1F) * (width / 64)) + ((x >> 1) & ~0x1F) + blockTable32[(y >> 3) & 0x3][(x >> 3) & 0x7];
-    }
-
-    uint32_t GraphicsSynthesizerThread::blockid_PSMZ32(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        return block + ((y & ~0x1F) * (width / 64)) + ((x >> 1) & ~0x1F) + blockTable32Z[(y >> 3) & 0x3][(x >> 3) & 0x7];
-    }
-
-    uint32_t GraphicsSynthesizerThread::blockid_PSMCT16(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        return block + ((y >> 1) & ~0x1F) * (width / 64) + ((x >> 1) & ~0x1F) + blockTable16[(y >> 3) & 7][(x >> 4) & 3];
-    }
-
-    uint32_t GraphicsSynthesizerThread::blockid_PSMCT16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        return block + ((y >> 1) & ~0x1F) * (width / 64) + ((x >> 1) & ~0x1F) + blockTable16S[(y >> 3) & 7][(x >> 4) & 3];
-    }
-
-    uint32_t GraphicsSynthesizerThread::blockid_PSMZ16(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        return block + ((y >> 1) & ~0x1F) * (width / 64) + ((x >> 1) & ~0x1F) + blockTable16Z[(y >> 3) & 7][(x >> 4) & 3];
-    }
-
-    uint32_t GraphicsSynthesizerThread::blockid_PSMZ16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        return block + ((y >> 1) & ~0x1F) * (width / 64) + ((x >> 1) & ~0x1F) + blockTable16SZ[(y >> 3) & 7][(x >> 4) & 3];
-    }
-
-    uint32_t GraphicsSynthesizerThread::blockid_PSMT8(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        return block + ((y >> 1) & ~0x1F) * (width / 128) + ((x >> 2) & ~0x1F) + blockTable8[(y >> 4) & 3][(x >> 4) & 7];
-    }
-
-    uint32_t GraphicsSynthesizerThread::blockid_PSMT4(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        return block + ((y >> 2) & ~0x1f) * (width >> 7) + ((x >> 2) & ~0x1f) + blockTable4[(y >> 4) & 7][(x >> 5) & 3];
-    }
-
-    uint32_t addr_PSMCT32(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        uint32_t page = ((block >> 5) + (y >> 5) * width + (x >> 6));
-        //uint32_t addr = (page << 11) + page_PSMCT32[block & 0x1F][y & 0x1F][x & 0x3F];
-        uint32_t addr = (page << 11) + page_PSMCT32.get(block & 0x1F, y & 0x1F, x & 0x3F);
-        return (addr << 2) & 0x003FFFFC;
-    }
-
-    uint32_t addr_PSMCT32Z(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        uint32_t page = ((block >> 5) + (y >> 5) * width + (x >> 6));
-        uint32_t addr = (page << 11) + page_PSMCT32Z.get(block & 0x1F, y & 0x1F, x & 0x3F);
-        return (addr << 2) & 0x003FFFFC;
-    }
-
-    uint32_t addr_PSMCT16(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        uint32_t page = ((block >> 5) + (y >> 6) * width + (x >> 6));
-        uint32_t addr = (page << 12) + page_PSMCT16.get(block & 0x1F, y & 0x3F, x & 0x3F);
-        return (addr << 1) & 0x003FFFFE;
-    }
-
-    uint32_t addr_PSMCT16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        uint32_t page = ((block >> 5) + (y >> 6) * width + (x >> 6));
-        uint32_t addr = (page << 12) + page_PSMCT16S.get(block & 0x1F, y & 0x3F, x & 0x3F);
-        return (addr << 1) & 0x003FFFFE;
-    }
-
-    uint32_t addr_PSMCT16Z(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        uint32_t page = ((block >> 5) + (y >> 6) * width + (x >> 6));
-        uint32_t addr = (page << 12) + page_PSMCT16Z.get(block & 0x1F, y & 0x3F, x & 0x3F);
-        return (addr << 1) & 0x003FFFFE;
-    }
-
-    uint32_t addr_PSMCT16SZ(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        uint32_t page = ((block >> 5) + (y >> 6) * width + (x >> 6));
-        uint32_t addr = (page << 12) + page_PSMCT16SZ.get(block & 0x1F, y & 0x3F, x & 0x3F);
-        return (addr << 1) & 0x003FFFFE;
-    }
-
-    uint32_t addr_PSMCT8(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        uint32_t page = ((block >> 5) + (y >> 6) * (width >> 1) + (x >> 7));
-        uint32_t addr = (page << 13) + page_PSMCT8.get(block & 0x1F, y & 0x3F, x & 0x7F);
-        return addr & 0x003FFFFF;
-    }
-
-    uint32_t addr_PSMCT4(uint32_t block, uint32_t width, uint32_t x, uint32_t y)
-    {
-        uint32_t page = ((block >> 5) + (y >> 7) * (width >> 1) + (x >> 7));
-        uint32_t addr = (page << 14) + page_PSMCT4.get(block & 0x1F, y & 0x7F, x & 0x7F);
-        return addr & 0x007FFFFF;
-    }
-
     uint32_t GraphicsSynthesizerThread::read_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
-        uint32_t addr = addr_PSMCT32(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMCT32(base / 256, width / 64, x, y);
         return *(uint32_t*)&local_mem[addr];
     }
 
     uint32_t GraphicsSynthesizerThread::read_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
-        uint32_t addr = addr_PSMCT32Z(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMZ32(base / 256, width / 64, x, y);
         return *(uint32_t*)&local_mem[addr];
     }
 
     uint16_t GraphicsSynthesizerThread::read_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
-        uint32_t addr = addr_PSMCT16(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMCT16(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
     uint16_t GraphicsSynthesizerThread::read_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
-        uint32_t addr = addr_PSMCT16S(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMCT16S(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
     uint16_t GraphicsSynthesizerThread::read_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
-        uint32_t addr = addr_PSMCT16Z(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMZ16(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
     uint16_t GraphicsSynthesizerThread::read_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
-        uint32_t addr = addr_PSMCT16SZ(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMZ16S(base / 256, width / 64, x, y);
         return *(uint16_t*)&local_mem[addr];
     }
 
     uint8_t GraphicsSynthesizerThread::read_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
-        uint32_t addr = addr_PSMCT8(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMT8(base / 256, width / 64, x, y);
         return local_mem[addr];
     }
 
     uint8_t GraphicsSynthesizerThread::read_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y)
     {
-        uint32_t addr = addr_PSMCT4(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMT4(base / 256, width / 64, x, y);
         return (local_mem[addr >> 1] >> ((addr & 1) << 2)) & 0x0f;
     }
 
     void GraphicsSynthesizerThread::write_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
-        uint32_t addr = addr_PSMCT32(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMCT32(base / 256, width / 64, x, y);
         *(uint32_t*)&local_mem[addr] = value;
     }
 
     void GraphicsSynthesizerThread::write_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
-        uint32_t addr = addr_PSMCT32Z(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMZ32(base / 256, width / 64, x, y);
         *(uint32_t*)&local_mem[addr] = value;
     }
 
     void GraphicsSynthesizerThread::write_PSMCT24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
-        uint32_t addr = addr_PSMCT32(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMCT32(base / 256, width / 64, x, y);
         uint32_t old_mem = *(uint32_t*)&local_mem[addr];
         value &= 0xFFFFFF;
         *(uint32_t*)&local_mem[addr] = (old_mem & 0xFF000000) | value;
@@ -1337,7 +1356,7 @@ namespace GS
 
     void GraphicsSynthesizerThread::write_PSMZ24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value)
     {
-        uint32_t addr = addr_PSMCT32Z(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMZ32(base / 256, width / 64, x, y);
         uint32_t old_mem = *(uint32_t*)&local_mem[addr];
         value &= 0xFFFFFF;
         *(uint32_t*)&local_mem[addr] = (old_mem & 0xFF000000) | value;
@@ -1345,37 +1364,37 @@ namespace GS
 
     void GraphicsSynthesizerThread::write_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
-        uint32_t addr = addr_PSMCT16(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMCT16(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
     void GraphicsSynthesizerThread::write_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
-        uint32_t addr = addr_PSMCT16S(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMCT16S(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
     void GraphicsSynthesizerThread::write_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
-        uint32_t addr = addr_PSMCT16Z(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMZ16(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
     void GraphicsSynthesizerThread::write_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value)
     {
-        uint32_t addr = addr_PSMCT16SZ(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMZ16S(base / 256, width / 64, x, y);
         *(uint16_t*)&local_mem[addr] = value;
     }
 
     void GraphicsSynthesizerThread::write_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
     {
-        uint32_t addr = addr_PSMCT8(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMT8(base / 256, width / 64, x, y);
         local_mem[addr] = value;
     }
 
     void GraphicsSynthesizerThread::write_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value)
     {
-        uint32_t addr = addr_PSMCT4(base / 256, width / 64, x, y);
+        uint32_t addr = swizzle::addr_PSMT4(base / 256, width / 64, x, y);
         int shift = (addr & 1) << 2;
         addr >>= 1;
 
@@ -4246,28 +4265,28 @@ namespace GS
             case 0x00:
             case 0x01:
                 //PSMCT32/PSMCT24
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT32);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMCT32);
                 break;
             case 0x02:
                 //PSMCT16
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT16);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMCT16);
                 break;
             case 0x0A:
                 //PSMCT16S
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT16S);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMCT16S);
                 break;
             case 0x30:
             case 0x31:
                 //PSMCT32Z/PSMCT24Z
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT32Z);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMZ32);
                 break;
             case 0x32:
                 //PSMCT16Z
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT16Z);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMZ16);
                 break;
             case 0x3A:
                 //PSMCT16SZ
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT16SZ);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMZ16S);
                 break;
             default:
                 Errors::die("[GS_t] Unrecognized frame format $%02X in recompile_draw_pixel", current_ctx->frame.format);
@@ -4524,32 +4543,32 @@ namespace GS
         switch (current_ctx->zbuf.format)
         {
             case 0x00:
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT32);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMCT32);
                 break;
             case 0x01:
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT32);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMCT32);
                 break;
             case 0x02:
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT16);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMCT16);
                 break;
             case 0x0A:
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT16S);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMCT16S);
                 break;
             case 0x30:
                 //PSMCT32Z
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT32Z);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMZ32);
                 break;
             case 0x31:
                 //PSMCT24Z
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT32Z);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMZ32);
                 break;
             case 0x32:
                 //PSMCT16Z
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT16Z);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMZ16);
                 break;
             case 0x3A:
                 //PSMCT16SZ
-                jit_call_func(emitter_dp, (uint64_t)&addr_PSMCT16SZ);
+                jit_call_func(emitter_dp, (uint64_t)&swizzle::addr_PSMZ16S);
                 break;
             default:
                 Errors::die("[GS_t] Unrecognized zbuf format $%02X\n", current_ctx->zbuf.format);
@@ -5003,9 +5022,9 @@ namespace GS
             case 0x00:
             case 0x30:
                 if (current_ctx->tex0.format & 0x30)
-                    jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT32Z);
+                    jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMZ32);
                 else
-                    jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT32);
+                    jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMCT32);
                 emitter_tex.load_addr((uint64_t)local_mem, RCX);
                 emitter_tex.ADD64_REG(RCX, RAX);
                 emitter_tex.MOV32_FROM_MEM(RAX, RAX);
@@ -5013,9 +5032,9 @@ namespace GS
             case 0x01:
             case 0x31:
                 if (current_ctx->tex0.format & 0x30)
-                    jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT32Z);
+                    jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMZ32);
                 else
-                    jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT32);
+                    jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMCT32);
                 emitter_tex.load_addr((uint64_t)local_mem, RCX);
                 emitter_tex.ADD64_REG(RCX, RAX);
                 emitter_tex.MOV32_FROM_MEM(RAX, RAX);
@@ -5037,16 +5056,16 @@ namespace GS
                 if (current_ctx->tex0.format & 0x30)
                 {
                     if (current_ctx->tex0.format & 0x8)
-                        jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT16SZ);
+                        jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMZ16S);
                     else
-                        jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT16Z);
+                        jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMZ16);
                 }
                 else
                 {
                     if (current_ctx->tex0.format & 0x8)
-                        jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT16S);
+                        jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMCT16S);
                     else
-                        jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT16);
+                        jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMCT16);
                 }
                 emitter_tex.load_addr((uint64_t)local_mem, RCX);
                 emitter_tex.ADD64_REG(RCX, RAX);
@@ -5059,7 +5078,7 @@ namespace GS
                 emitter_tex.MOV32_REG_IMM(0, RAX);
                 break;
             case 0x13:
-                jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT8);
+                jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMT8);
                 emitter_tex.load_addr((uint64_t)local_mem, RCX);
                 emitter_tex.ADD64_REG(RCX, RAX);
                 emitter_tex.MOV32_FROM_MEM(RAX, RDI);
@@ -5071,7 +5090,7 @@ namespace GS
                     recompile_clut_lookup();
                 break;
             case 0x14:
-                jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT4);
+                jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMT4);
                 emitter_tex.MOV32_REG(RAX, RCX);
                 emitter_tex.SHR32_REG_IMM(1, RAX);
                 emitter_tex.load_addr((uint64_t)local_mem, RDI);
@@ -5091,7 +5110,7 @@ namespace GS
                     recompile_clut_lookup();
                 break;
             case 0x1B:
-                jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT32);
+                jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMCT32);
                 emitter_tex.load_addr((uint64_t)local_mem, RCX);
                 emitter_tex.ADD64_REG(RCX, RAX);
                 emitter_tex.MOV32_FROM_MEM(RAX, RDI);
@@ -5103,7 +5122,7 @@ namespace GS
                     recompile_clut_lookup();
                 break;
             case 0x24:
-                jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT32);
+                jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMCT32);
                 emitter_tex.load_addr((uint64_t)local_mem, RCX);
                 emitter_tex.ADD64_REG(RCX, RAX);
                 emitter_tex.MOV32_FROM_MEM(RAX, RDI);
@@ -5116,7 +5135,7 @@ namespace GS
                     recompile_clut_lookup();
                 break;
             case 0x2C:
-                jit_call_func(emitter_tex, (uint64_t)&addr_PSMCT32);
+                jit_call_func(emitter_tex, (uint64_t)&swizzle::addr_PSMCT32);
                 emitter_tex.load_addr((uint64_t)local_mem, RCX);
                 emitter_tex.ADD64_REG(RCX, RAX);
                 emitter_tex.MOV32_FROM_MEM(RAX, RDI);

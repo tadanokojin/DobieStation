@@ -15,22 +15,6 @@
 
 namespace GS
 {
-    template<int XS, int YS, int ZS>
-    struct SwizzleTable
-    {
-        SwizzleTable()
-        {
-
-        }
-
-        uint32_t& get(int x, int y, int z)
-        {
-            return data[x * YS * ZS + y * ZS + z];
-        }
-
-        uint32_t data[XS * YS * ZS];
-    };
-
     //Commands sent from the main thread to the GS thread.
     enum GSCommand :uint8_t
     {
@@ -252,15 +236,6 @@ namespace GS
         int16_t lastu, lastv;
     };
 
-    uint32_t addr_PSMCT32(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-    uint32_t addr_PSMZ32(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-    uint32_t addr_PSMCT16(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-    uint32_t addr_PSMCT16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-    uint32_t addr_PSMZ16(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-    uint32_t addr_PSMZ16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-    uint32_t addr_PSMCT8(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-    uint32_t addr_PSMCT4(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-
     struct VertexF
     {
         union {
@@ -437,35 +412,25 @@ namespace GS
             void soft_reset();
             void event_loop();
 
-            //Swizzling routines
-            uint32_t blockid_PSMCT32(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-            uint32_t blockid_PSMZ32(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-            uint32_t blockid_PSMCT16(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-            uint32_t blockid_PSMCT16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-            uint32_t blockid_PSMZ16(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-            uint32_t blockid_PSMZ16S(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-            uint32_t blockid_PSMT8(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
-            uint32_t blockid_PSMT4(uint32_t block, uint32_t width, uint32_t x, uint32_t y);
+            inline uint32_t read_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
+            inline uint32_t read_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
+            inline uint16_t read_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
+            inline uint16_t read_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
+            inline uint16_t read_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
+            inline uint16_t read_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
+            inline uint8_t read_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
+            inline uint8_t read_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
 
-            uint32_t read_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
-            uint32_t read_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
-            uint16_t read_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
-            uint16_t read_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
-            uint16_t read_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
-            uint16_t read_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
-            uint8_t read_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
-            uint8_t read_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y);
-
-            void write_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value);
-            void write_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value);
-            void write_PSMCT24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value);
-            void write_PSMZ24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value);
-            void write_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value);
-            void write_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value);
-            void write_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value);
-            void write_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value);
-            void write_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value);
-            void write_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value);
+            inline void write_PSMCT32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value);
+            inline void write_PSMZ32_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value);
+            inline void write_PSMCT24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value);
+            inline void write_PSMZ24_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint32_t value);
+            inline void write_PSMCT16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value);
+            inline void write_PSMCT16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value);
+            inline void write_PSMZ16_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value);
+            inline void write_PSMZ16S_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint16_t value);
+            inline void write_PSMT8_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value);
+            inline void write_PSMT4_block(uint32_t base, uint32_t width, uint32_t x, uint32_t y, uint8_t value);
 
             uint8_t get_16bit_alpha(uint16_t color);
             int16_t multiply_tex_color(int16_t tex_color, int16_t frag_color);
