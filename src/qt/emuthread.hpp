@@ -34,7 +34,7 @@ class EmuThread : public QThread
         std::ifstream gsdump;
         std::atomic_bool gsdump_reading;
         std::atomic_bool block_run_loop;
-        GS::GSMessage* gsdump_read_buffer;
+        GS::fifo::message* gsdump_read_buffer;
         int buffered_gs_messages;
         int current_gs_message;
 
@@ -60,7 +60,7 @@ class EmuThread : public QThread
         bool gsdump_read(const char* name);
         void gsdump_write_toggle();
         void gsdump_single_frame();
-        GS::GSMessage& get_next_gsdump_message();
+        GS::fifo::message& get_next_gsdump_message();
         bool gsdump_eof();
         std::atomic_bool frame_advance;
     protected:

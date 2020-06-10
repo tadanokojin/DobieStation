@@ -65,7 +65,7 @@ namespace GS
             void save_state(std::ofstream& state);
             void send_dump_request();
 
-            void send_message(GSMessage message);
+            void send_message(fifo::message message);
             void wake_gs_thread();
 
             std::tuple<uint128_t, uint32_t>request_gs_download();

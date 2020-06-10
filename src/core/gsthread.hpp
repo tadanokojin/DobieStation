@@ -15,126 +15,144 @@
 
 namespace GS
 {
-    //Commands sent from the main thread to the GS thread.
-    enum GSCommand :uint8_t
+    namespace fifo
     {
-        write64_t, write64_privileged_t, write32_privileged_t,
-        set_rgba_t, set_st_t, set_uv_t, set_xyz_t, set_xyzf_t, set_crt_t,
-        render_crt_t, assert_finish_t, assert_vsync_t, set_vblank_t, memdump_t, die_t,
-        save_state_t, load_state_t, gsdump_t, request_local_host_tx,
-    };
+        //Commands sent from the main thread to the GS thread.
+        enum command : uint8_t
+        {
+            write64_t,
+            write64_privileged_t,
+            write32_privileged_t,
+            set_rgba_t,
+            set_st_t,
+            set_uv_t,
+            set_xyz_t,
+            set_xyzf_t,
+            set_crt_t,
+            render_crt_t,
+            assert_finish_t,
+            assert_vsync_t,
+            set_vblank_t,
+            memdump_t,
+            die_t,
+            save_state_t,
+            load_state_t,
+            gsdump_t,
+            request_local_host_tx,
+        };
 
-    union GSMessagePayload
-    {
-        struct
+        union payload
         {
-            uint32_t addr;
-            uint64_t value;
-        } write64_payload;
-        struct
-        {
-            uint32_t addr;
-            uint32_t value;
-        } write32_payload;
-        struct
-        {
-            uint8_t r, g, b, a;
-            float q;
-        } rgba_payload;
-        struct
-        {
-            uint32_t s, t;
-        } st_payload;
-        struct
-        {
-            uint16_t u, v;
-        } uv_payload;
-        struct
-        {
-            uint32_t x, y, z;
-            bool drawing_kick;
-        } xyz_payload;
-        struct
-        {
-            uint32_t x, y, z;
-            uint8_t fog;
-            bool drawing_kick;
-        } xyzf_payload;
-        struct
-        {
-            bool interlaced;
-            int mode;
-            bool frame_mode;
-        } crt_payload;
-        struct
-        {
-            bool vblank;
-        } vblank_payload;
-        struct
-        {
-            uint32_t* target;
-            std::mutex* target_mutex;
-        } render_payload;
-        struct
-        {
-            std::ofstream* state;
-        } save_state_payload;
-        struct
-        {
-            std::ifstream* state;
-        } load_state_payload;
-        struct
-        {
-            uint8_t BLANK;
-        } no_payload;//C++ doesn't like the empty struct
-    };
+            struct
+            {
+                uint32_t addr;
+                uint64_t value;
+            } write64_payload;
+            struct
+            {
+                uint32_t addr;
+                uint32_t value;
+            } write32_payload;
+            struct
+            {
+                uint8_t r, g, b, a;
+                float q;
+            } rgba_payload;
+            struct
+            {
+                uint32_t s, t;
+            } st_payload;
+            struct
+            {
+                uint16_t u, v;
+            } uv_payload;
+            struct
+            {
+                uint32_t x, y, z;
+                bool drawing_kick;
+            } xyz_payload;
+            struct
+            {
+                uint32_t x, y, z;
+                uint8_t fog;
+                bool drawing_kick;
+            } xyzf_payload;
+            struct
+            {
+                bool interlaced;
+                int mode;
+                bool frame_mode;
+            } crt_payload;
+            struct
+            {
+                bool vblank;
+            } vblank_payload;
+            struct
+            {
+                uint32_t* target;
+                std::mutex* target_mutex;
+            } render_payload;
+            struct
+            {
+                std::ofstream* state;
+            } save_state_payload;
+            struct
+            {
+                std::ifstream* state;
+            } load_state_payload;
+            struct
+            {
+                uint8_t BLANK;
+            } no_payload;//C++ doesn't like the empty struct
+        };
 
-    struct GSMessage
-    {
-        GSCommand type;
-        GSMessagePayload payload;
-    };
-
-    //Commands sent from the GS thread to the main thread.
-    enum GSReturn :uint8_t
-    {
-        render_complete_t,
-        death_error_t,
-        save_state_done_t,
-        load_state_done_t,
-        gsdump_render_partial_done_t,
-        local_host_transfer,
-    };
-
-    union GSReturnMessagePayload
-    {
-        struct
+        struct message
         {
-            const char* error_str;
-        } death_error_payload;
-        struct
-        {
-            uint16_t x, y;
-        } xy_payload;
-        struct
-        {
-            uint8_t BLANK;
-        } no_payload;//C++ doesn't like the empty struct
-        struct
-        {
-            uint128_t quad_data;
-            uint32_t status;
-        } data_payload;
-    };
+            command command;
+            payload payload;
+        };
 
-    struct GSReturnMessage
-    {
-        GSReturn type;
-        GSReturnMessagePayload payload;
-    };
+        //Commands sent from the GS thread to the main thread.
+        enum return_command : uint8_t
+        {
+            render_complete_t,
+            death_error_t,
+            save_state_done_t,
+            load_state_done_t,
+            gsdump_render_partial_done_t,
+            local_host_transfer,
+        };
 
-    typedef CircularFifo<GSMessage, 1024 * 1024 * 16> gs_fifo;
-    typedef CircularFifo<GSReturnMessage, 1024> gs_return_fifo;
+        union return_payload
+        {
+            struct
+            {
+                const char* error_str;
+            } death_error_payload;
+            struct
+            {
+                uint16_t x, y;
+            } xy_payload;
+            struct
+            {
+                uint8_t BLANK;
+            } no_payload;//C++ doesn't like the empty struct
+            struct
+            {
+                uint128_t quad_data;
+                uint32_t status;
+            } data_payload;
+        };
+
+        struct return_message
+        {
+            return_command command;
+            return_payload payload;
+        };
+
+        using fifo_t = CircularFifo<message, 1024 * 1024 * 16>;
+        using return_fifo_t = CircularFifo<return_message, 1024>;
+    }
 
     struct PRMODE_REG
     {
@@ -333,8 +351,8 @@ namespace GS
             bool send_data = false;
             bool recieve_data = false;
 
-            std::unique_ptr<gs_fifo> message_queue{ nullptr };
-            std::unique_ptr<gs_return_fifo> return_queue{ nullptr };
+            std::unique_ptr<fifo::fifo_t> message_queue{ nullptr };
+            std::unique_ptr<fifo::return_fifo_t> return_queue{ nullptr };
 
             bool frame_complete;
             int frame_count;
@@ -499,9 +517,9 @@ namespace GS
             ~GraphicsSynthesizerThread();
 
             // safe to access from emu thread
-            void send_message(GSMessage message);
+            void send_message(fifo::message message);
             void wake_thread();
-            void wait_for_return(GSReturn type, GSReturnMessage& data);
+            void wait_for_return(fifo::return_command cmd, fifo::return_message& msg);
             void reset();
             void exit();
     };

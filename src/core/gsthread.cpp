@@ -269,17 +269,17 @@ namespace GS
         delete[] local_mem;
     }
 
-    void GraphicsSynthesizerThread::wait_for_return(GSReturn type, GSReturnMessage &data)
+    void GraphicsSynthesizerThread::wait_for_return(fifo::return_command cmd, fifo::return_message &msg)
     {
         printf("[GS] Waiting for return\n");
 
         while (true)
         {
-            if (return_queue->pop(data))
+            if (return_queue->pop(msg))
             {
-                if (data.type == death_error_t)
+                if (msg.command == fifo::return_command::death_error_t)
                 {
-                    auto p = data.payload.death_error_payload;
+                    auto p = msg.payload.death_error_payload;
                     auto data = std::string(p.error_str);
                     delete[] p.error_str;
                     Errors::die(data.c_str());
@@ -287,21 +287,21 @@ namespace GS
                     //but I don't know how to make RAII work across threads properly
                 }
 
-                if (data.type == type)
+                if (msg.command == cmd)
                     return;
                 else
                 {
                     if (return_queue->was_empty())
                     {
                         //Last message in the queue, so we don't want this one so we need to sleep
-                        return_queue->push(data); //Put it back on the queue, something else probably wants it
+                        return_queue->push(msg); //Put it back on the queue, something else probably wants it
                         printf("[GS] Waiting for return message, pushed last message on to queue type %d expecting %d\n", data.type, type);
                         std::unique_lock<std::mutex> lk(data_mutex);
                         notifier.wait(lk, [this] {return recieve_data; });
                         recieve_data = false;
                     }
                     else
-                        return_queue->push(data); //Put it back on the queue, something else probably wants it
+                        return_queue->push(msg); //Put it back on the queue, something else probably wants it
                 }
                   //Errors::die("[GS] return message expected %d but was %d!\n", type, data.type);
             }
@@ -315,7 +315,7 @@ namespace GS
         }
     }
 
-    void GraphicsSynthesizerThread::send_message(GSMessage message)
+    void GraphicsSynthesizerThread::send_message(fifo::message message)
     {
         //printf("[GS] Notifying gs thread of new data\n");
         message_queue->push(message);
@@ -333,10 +333,10 @@ namespace GS
     {
         if (thread.joinable())
         {
-            GSMessagePayload payload;
+            fifo::payload payload;
             payload.no_payload = {0};
         
-            send_message({ GSCommand::die_t, payload });
+            send_message({ fifo::command::die_t, payload });
             wake_thread();
             thread.join();
         }
@@ -353,22 +353,22 @@ namespace GS
         {
             while (true)
             {
-                GSMessage data;
+                fifo::message data;
 
                 if (message_queue->pop(data))
                 {
                     if (gsdump_recording)
                         gsdump_file.write((char*)&data, sizeof(data));
 
-                    switch (data.type)
+                    switch (data.command)
                     {
-                        case write64_t:
+                        case fifo::command::write64_t:
                         {
                             auto p = data.payload.write64_payload;
                             write64(p.addr, p.value);
                             break;
                         }
-                        case write64_privileged_t:
+                        case fifo::command::write64_privileged_t:
                         {
                             auto p = data.payload.write64_payload;
                             reg.write64_privileged(p.addr, p.value);
@@ -376,7 +376,7 @@ namespace GS
                                 soft_reset();
                             break;
                         }
-                        case write32_privileged_t:
+                        case fifo::command::write32_privileged_t:
                         {
                             auto p = data.payload.write32_payload;
                             reg.write32_privileged(p.addr, p.value);
@@ -384,44 +384,44 @@ namespace GS
                                 soft_reset();
                             break;
                         }
-                        case set_rgba_t:
+                        case fifo::command::set_rgba_t:
                         {
                             auto p = data.payload.rgba_payload;
                             set_RGBA(p.r, p.g, p.b, p.a, p.q);
                             break;
                         }
-                        case set_st_t:
+                        case fifo::command::set_st_t:
                         {
                             auto p = data.payload.st_payload;
                             set_ST(p.s, p.t);
                             break;
                         }
-                        case set_uv_t:
+                        case fifo::command::set_uv_t:
                         {
                             auto p = data.payload.uv_payload;
                             set_UV(p.u, p.v);
                             break;
                         }
-                        case set_xyz_t:
+                        case fifo::command::set_xyz_t:
                         {
                             auto p = data.payload.xyz_payload;
                             set_XYZ(p.x, p.y, p.z, p.drawing_kick);
                             break;
                         }
-                        case set_xyzf_t:
+                        case fifo::command::set_xyzf_t:
                         {
                             auto p = data.payload.xyzf_payload;
                             set_XYZF(p.x, p.y, p.z, p.fog, p.drawing_kick);
                             break;
                         }
                             break;
-                        case set_crt_t:
+                        case fifo::command::set_crt_t:
                         {
                             auto p = data.payload.crt_payload;
                             reg.set_CRT(p.interlaced, p.mode, p.frame_mode);
                             break;
                         }
-                        case render_crt_t:
+                        case fifo::command::render_crt_t:
                         {
                             auto p = data.payload.render_payload;
 
@@ -432,27 +432,27 @@ namespace GS
                             }
                             std::lock_guard<std::mutex> lock(*p.target_mutex, std::adopt_lock);
                             render_CRT(p.target);
-                            GSReturnMessagePayload return_payload;
+                            fifo::return_payload return_payload;
                             return_payload.no_payload = { 0 };
-                            return_queue->push({ GSReturn::render_complete_t,return_payload });
+                            return_queue->push({ fifo::return_command::render_complete_t, return_payload });
                             std::unique_lock<std::mutex> lk(data_mutex);
                             recieve_data = true;
                             notifier.notify_one();
                             break;
                         }
-                        case assert_finish_t:
+                        case fifo::command::assert_finish_t:
                             reg.assert_FINISH();
                             break;
-                        case assert_vsync_t:
+                        case fifo::command::assert_vsync_t:
                             reg.assert_VSYNC();
                             break;
-                        case set_vblank_t:
+                        case fifo::command::set_vblank_t:
                         {
                             auto p = data.payload.vblank_payload;
                             reg.set_VBLANK(p.vblank);
                             break;
                         }
-                        case memdump_t:
+                        case fifo::command::memdump_t:
                         {
                             auto p = data.payload.render_payload;
 
@@ -464,38 +464,38 @@ namespace GS
                             std::lock_guard<std::mutex> lock(*p.target_mutex, std::adopt_lock);
                             uint16_t width, height;
                             memdump(p.target, width, height);
-                            GSReturnMessagePayload return_payload;
+                            fifo::return_payload return_payload;
                             return_payload.xy_payload = { width, height };
-                            return_queue->push({ GSReturn::gsdump_render_partial_done_t,return_payload });
+                            return_queue->push({ fifo::return_command::gsdump_render_partial_done_t, return_payload });
                             std::unique_lock<std::mutex> lk(data_mutex);
                             recieve_data = true;
                             notifier.notify_one();
                             break;
                         }
-                        case die_t:
+                        case fifo::command::die_t:
                             return;
-                        case load_state_t:
+                        case fifo::command::load_state_t:
                         {
                             load_state(data.payload.load_state_payload.state);
-                            GSReturnMessagePayload return_payload;
+                            fifo::return_payload return_payload;
                             return_payload.no_payload = { 0 };
-                            return_queue->push({ GSReturn::load_state_done_t,return_payload });
+                            return_queue->push({ fifo::return_command::load_state_done_t, return_payload });
                             std::unique_lock<std::mutex> lk(data_mutex);
                             recieve_data = true;
                             notifier.notify_one();
                             break;
                         }
-                        case save_state_t:
+                        case fifo::command::save_state_t:
                         {
                             save_state(data.payload.save_state_payload.state);
-                            GSReturnMessagePayload return_payload;
+                            fifo::return_payload return_payload;
                             return_payload.no_payload = { 0 };
-                            return_queue->push({ GSReturn::save_state_done_t,return_payload });
+                            return_queue->push({ fifo::return_command::save_state_done_t, return_payload });
                             recieve_data = true;
                             notifier.notify_one();
                             break;
                         }
-                        case gsdump_t:
+                        case fifo::command::gsdump_t:
                         {
                             printf("gs dump! ");
                             if (!gsdump_recording)
@@ -516,12 +516,12 @@ namespace GS
                             }
                             break;
                         }
-                        case request_local_host_tx:
+                        case fifo::command::request_local_host_tx:
                         {
-                            GSReturnMessagePayload return_payload;
+                            fifo::return_payload return_payload;
                             return_payload.data_payload.status = (TRXDIR != 3);
                             return_payload.data_payload.quad_data = local_to_host();
-                            return_queue->push({ GSReturn::local_host_transfer, return_payload });
+                            return_queue->push({ fifo::return_command::local_host_transfer, return_payload });
                             std::unique_lock<std::mutex> lk(data_mutex);
                             recieve_data = true;
                             notifier.notify_one();
@@ -542,11 +542,11 @@ namespace GS
         }
         catch (Emulation_error &e)
         {
-            GSReturnMessagePayload return_payload;
+            fifo::return_payload return_payload;
             char* copied_string = new char[ERROR_STRING_MAX_LENGTH];
             strncpy(copied_string, e.what(), ERROR_STRING_MAX_LENGTH);
             return_payload.death_error_payload.error_str = { copied_string };
-            return_queue->push({ GSReturn::death_error_t, return_payload });
+            return_queue->push({ fifo::return_command::death_error_t, return_payload });
             recieve_data = true;
             notifier.notify_one();
         }
@@ -589,8 +589,8 @@ namespace GS
 
         memset(screen_buffer, 0, sizeof(screen_buffer));
 
-        message_queue = std::make_unique<gs_fifo>();
-        return_queue = std::make_unique<gs_return_fifo>();
+        message_queue = std::make_unique<fifo::fifo_t>();
+        return_queue = std::make_unique<fifo::return_fifo_t>();
         thread = std::thread(&GraphicsSynthesizerThread::event_loop, this);
     }
 

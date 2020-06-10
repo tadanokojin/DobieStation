@@ -22,7 +22,7 @@ EmuThread::EmuThread()
     gsdump_reading = false;
     frame_advance = false;
     block_run_loop = false;
-    gsdump_read_buffer = new GS::GSMessage[GSDUMP_BUFFERED_MESSAGES];
+    gsdump_read_buffer = new GS::fifo::message[GSDUMP_BUFFERED_MESSAGES];
 }
 
 EmuThread::~EmuThread()
@@ -137,14 +137,14 @@ void EmuThread::gsdump_single_frame()
     wait_for_lock([=]() { e.request_gsdump_single_frame(); } );
 }
 
-GS::GSMessage& EmuThread::get_next_gsdump_message()
+GS::fifo::message& EmuThread::get_next_gsdump_message()
 {
     if(!buffered_gs_messages) {
-        gsdump.read((char*)gsdump_read_buffer, sizeof(GS::GSMessage) * GSDUMP_BUFFERED_MESSAGES);
+        gsdump.read((char*)gsdump_read_buffer, sizeof(GS::fifo::message) * GSDUMP_BUFFERED_MESSAGES);
         current_gs_message = 0;
-        buffered_gs_messages = gsdump.gcount() / sizeof(GS::GSMessage);
+        buffered_gs_messages = gsdump.gcount() / sizeof(GS::fifo::message);
     }
-    GS::GSMessage& data = gsdump_read_buffer[current_gs_message];
+    GS::fifo::message& data = gsdump_read_buffer[current_gs_message];
     current_gs_message++;
     buffered_gs_messages--;
     return data;
@@ -163,11 +163,11 @@ void EmuThread::gsdump_run()
         int draws_sent = 10;
         while (true)
         {
-            GS::GSMessage& data = get_next_gsdump_message();
+            GS::fifo::message& data = get_next_gsdump_message();
 
-            switch (data.type)
+            switch (data.command)
             {
-                case GS::set_xyz_t:
+                case GS::fifo::set_xyz_t:
                     e.get_gs().send_message(data);
                     e.get_gs().wake_gs_thread();
                     if (frame_advance && data.payload.xyz_payload.drawing_kick && --draws_sent <= 0)
@@ -179,7 +179,7 @@ void EmuThread::gsdump_run()
                         return;
                     }
                     break;
-                case GS::render_crt_t:
+                case GS::fifo::render_crt_t:
                 {
                     printf("gsdump frame render\n");
                     e.get_gs().render_CRT();
@@ -192,14 +192,14 @@ void EmuThread::gsdump_run()
                     pause(PAUSE_EVENT::FRAME_ADVANCE);
                     return;
                 }
-                case GS::gsdump_t:
+                case GS::fifo::gsdump_t:
                     pause(PAUSE_EVENT::GAME_NOT_LOADED);
                     if (gsdump.peek() != EOF)
                         Errors::die("gsdump ended before end of file!");
                     gsdump.close();
                     Errors::die("gsdump ended successfully\n");
-                case GS::save_state_t:
-                case GS::load_state_t:
+                case GS::fifo::save_state_t:
+                case GS::fifo::load_state_t:
                     Errors::die("save_state save/load during gsdump not supported!");
                 default:
                     e.get_gs().send_message(data);

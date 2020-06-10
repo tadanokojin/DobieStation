@@ -60,18 +60,18 @@ namespace GS
     {
         reg.set_CRT(interlaced, mode, frame_mode);
 
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.crt_payload = { interlaced, mode, frame_mode };
 
-        gs_thread.send_message({ GSCommand::set_crt_t, payload });
+        gs_thread.send_message({ fifo::command::set_crt_t, payload });
     }
 
     uint32_t* GraphicsSynthesizer::get_framebuffer()
     {
         uint32_t* out;
-        GSReturnMessage data;
+        fifo::return_message data;
 
-        gs_thread.wait_for_return(GSReturn::render_complete_t, data);
+        gs_thread.wait_for_return(fifo::return_command::render_complete_t, data);
 
         if (using_first_buffer)
         {
@@ -104,10 +104,10 @@ namespace GS
 
     void GraphicsSynthesizer::set_VBLANK(bool is_VBLANK)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.vblank_payload = { is_VBLANK };
 
-        gs_thread.send_message({ GSCommand::set_vblank_t, payload });
+        gs_thread.send_message({ fifo::command::set_vblank_t, payload });
         gs_thread.wake_thread();
         reg.set_VBLANK(is_VBLANK);
 
@@ -126,10 +126,10 @@ namespace GS
 
     void GraphicsSynthesizer::assert_VSYNC()
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.no_payload = {};
 
-        gs_thread.send_message({ GSCommand::assert_vsync_t, payload });
+        gs_thread.send_message({ fifo::command::assert_vsync_t, payload });
 
         if (reg.assert_VSYNC())
             intc->assert_IRQ((int)Interrupt::GS);
@@ -137,10 +137,10 @@ namespace GS
 
     void GraphicsSynthesizer::assert_FINISH()
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.no_payload = { };
 
-        gs_thread.send_message({ GSCommand::assert_finish_t, payload });
+        gs_thread.send_message({ fifo::command::assert_finish_t, payload });
 
         if (reg.assert_FINISH())
             intc->assert_IRQ((int)Interrupt::GS);
@@ -148,30 +148,30 @@ namespace GS
 
     void GraphicsSynthesizer::render_CRT()
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
 
         if (using_first_buffer)
             payload.render_payload = { output_buffer1, &output_buffer1_mutex };
         else
             payload.render_payload = { output_buffer2, &output_buffer2_mutex }; ;
 
-        gs_thread.send_message({ GSCommand::render_crt_t, payload });
+        gs_thread.send_message({ fifo::command::render_crt_t, payload });
         gs_thread.wake_thread();
     }
 
     uint32_t* GraphicsSynthesizer::render_partial_frame(uint16_t& width, uint16_t& height)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
 
         if (using_first_buffer)
             payload.render_payload = { output_buffer1, &output_buffer1_mutex };
         else
             payload.render_payload = { output_buffer2, &output_buffer2_mutex }; ;
 
-        gs_thread.send_message({ GSCommand::memdump_t,payload });
+        gs_thread.send_message({ fifo::command::memdump_t,payload });
         gs_thread.wake_thread();
-        GSReturnMessage data;
-        gs_thread.wait_for_return(GSReturn::gsdump_render_partial_done_t, data);
+        fifo::return_message data;
+        gs_thread.wait_for_return(fifo::return_command::gsdump_render_partial_done_t, data);
 
         width = data.payload.xy_payload.x;
         height = data.payload.xy_payload.y;
@@ -202,10 +202,10 @@ namespace GS
 
     void GraphicsSynthesizer::write64(uint32_t addr, uint64_t value)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.write64_payload = { addr, value };
 
-        gs_thread.send_message({ GSCommand::write64_t, payload });
+        gs_thread.send_message({ fifo::command::write64_t, payload });
 
         //Check for interrupt pre-processing
         reg.write64(addr, value);
@@ -225,10 +225,10 @@ namespace GS
 
     void GraphicsSynthesizer::write64_privileged(uint32_t addr, uint64_t value)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.write64_payload = { addr, value };
 
-        gs_thread.send_message({ GSCommand::write64_privileged_t,payload });
+        gs_thread.send_message({ fifo::command::write64_privileged_t,payload });
 
         bool old_IMR = reg.IMR.signal;
         reg.write64_privileged(addr, value);
@@ -243,10 +243,10 @@ namespace GS
 
     void GraphicsSynthesizer::write32_privileged(uint32_t addr, uint32_t value)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.write32_payload = { addr, value };
 
-        gs_thread.send_message({ GSCommand::write32_privileged_t,payload });
+        gs_thread.send_message({ fifo::command::write32_privileged_t,payload });
 
         bool old_IMR = reg.IMR.signal;
         reg.write32_privileged(addr, value);
@@ -275,79 +275,79 @@ namespace GS
 
     void GraphicsSynthesizer::set_RGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a, float q)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.rgba_payload = { r, g, b, a, q };
 
-        gs_thread.send_message({ GSCommand::set_rgba_t, payload });
+        gs_thread.send_message({ fifo::command::set_rgba_t, payload });
     }
 
     void GraphicsSynthesizer::set_ST(uint32_t s, uint32_t t)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.st_payload = { s, t };
 
-        gs_thread.send_message({ GSCommand::set_st_t, payload });
+        gs_thread.send_message({ fifo::command::set_st_t, payload });
     }
 
     void GraphicsSynthesizer::set_UV(uint16_t u, uint16_t v)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.uv_payload = { u, v };
 
-        gs_thread.send_message({ GSCommand::set_uv_t, payload });
+        gs_thread.send_message({ fifo::command::set_uv_t, payload });
     }
 
     void GraphicsSynthesizer::set_XYZ(uint32_t x, uint32_t y, uint32_t z, bool drawing_kick)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.xyz_payload = { x, y, z, drawing_kick };
 
-        gs_thread.send_message({ GSCommand::set_xyz_t, payload });
+        gs_thread.send_message({ fifo::command::set_xyz_t, payload });
     }
 
     void GraphicsSynthesizer::set_XYZF(uint32_t x, uint32_t y, uint32_t z, uint8_t fog, bool drawing_kick)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.xyzf_payload = { x, y, z, fog, drawing_kick };
 
-        gs_thread.send_message({ GSCommand::set_xyzf_t, payload });
+        gs_thread.send_message({ fifo::command::set_xyzf_t, payload });
     }
 
     void GraphicsSynthesizer::load_state(std::ifstream& state)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.load_state_payload = { &state };
-        gs_thread.send_message({ GSCommand::load_state_t, payload });
+        gs_thread.send_message({ fifo::command::load_state_t, payload });
         gs_thread.wake_thread();
-        GSReturnMessage data;
-        gs_thread.wait_for_return(GSReturn::load_state_done_t, data);
+        fifo::return_message data;
+        gs_thread.wait_for_return(fifo::return_command::load_state_done_t, data);
 
         state.read((char*)&reg, sizeof(reg));
     }
 
     void GraphicsSynthesizer::save_state(std::ofstream& state)
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.save_state_payload = { &state };
 
-        gs_thread.send_message({ GSCommand::save_state_t, payload });
+        gs_thread.send_message({ fifo::command::save_state_t, payload });
         gs_thread.wake_thread();
-        GSReturnMessage data;
-        gs_thread.wait_for_return(GSReturn::save_state_done_t, data);
+        fifo::return_message data;
+        gs_thread.wait_for_return(fifo::return_command::save_state_done_t, data);
 
         state.write((char*)&reg, sizeof(reg));
     }
 
     void GraphicsSynthesizer::send_dump_request()
     {
-        GSMessagePayload p;
+        fifo::payload p;
         p.no_payload = { 0 };
 
-        gs_thread.send_message({ gsdump_t, p });
+        gs_thread.send_message({ fifo::command::gsdump_t, p });
         gs_thread.wake_thread();
     }
 
-    void GraphicsSynthesizer::send_message(GSMessage message)
+    void GraphicsSynthesizer::send_message(fifo::message message)
     {
         gs_thread.send_message(message);
     }
@@ -359,12 +359,12 @@ namespace GS
 
     std::tuple<uint128_t, uint32_t>GraphicsSynthesizer::request_gs_download()
     {
-        GSMessagePayload payload;
+        fifo::payload payload;
         payload.no_payload = {};
-        gs_thread.send_message({ GSCommand::request_local_host_tx, payload });
+        gs_thread.send_message({ fifo::command::request_local_host_tx, payload });
         gs_thread.wake_thread();
-        GSReturnMessage data;
-        gs_thread.wait_for_return(GSReturn::local_host_transfer, data);
+        fifo::return_message data;
+        gs_thread.wait_for_return(fifo::return_command::local_host_transfer, data);
         return std::make_tuple(data.payload.data_payload.quad_data, data.payload.data_payload.status);
     }
 }
