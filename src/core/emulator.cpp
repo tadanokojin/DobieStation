@@ -232,7 +232,7 @@ void Emulator::vblank_start()
 {
     VBLANK_sent = true;
     gs.set_VBLANK(true);
-
+    gs.render_CRT();
     timers.gate(true, true);
     cdvd.vsync();
     //cpu.set_disassembly(frames >= 223 && frames < 225);
@@ -249,7 +249,7 @@ void Emulator::vblank_end()
     timers.gate(true, false);
     frame_ended = true;
     frames++;
-    gs.render_CRT();
+    //gs.render_CRT();
 }
 
 void Emulator::cdvd_event()
@@ -808,7 +808,7 @@ void Emulator::write32(uint32_t address, uint32_t value)
     if ((address & (0xFF000000)) == 0x12000000)
     {
         gs.write32_privileged(address, value);
-        gs.wake_gs_thread();
+        //gs.wake_gs_thread();
         return;
     }
     if (address >= 0x10008000 && address < 0x1000F000)
@@ -946,7 +946,7 @@ void Emulator::write64(uint32_t address, uint64_t value)
     if ((address & (0xFF000000)) == 0x12000000)
     {
         gs.write64_privileged(address, value);
-        gs.wake_gs_thread();
+        //gs.wake_gs_thread();
         return;
     }
     if (address >= 0x11000000 && address < 0x11004000)

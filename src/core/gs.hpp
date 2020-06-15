@@ -14,12 +14,6 @@ class GraphicsSynthesizer
         INTC* intc;
         bool frame_complete;
         int frame_count;
-        uint32_t* output_buffer1;
-        uint32_t* output_buffer2;//double buffered to prevent mutex lock
-        std::mutex output_buffer1_mutex, output_buffer2_mutex;
-        bool using_first_buffer;
-        std::unique_lock<std::mutex> current_lock;
-
         GS_REGISTERS reg;
 
         GraphicsSynthesizerThread gs_thread;
@@ -63,8 +57,6 @@ class GraphicsSynthesizer
         void send_dump_request();
 
         void send_message(GSMessage message);
-        void wake_gs_thread();
-
         std::tuple<uint128_t, uint32_t>request_gs_download();
 };
 #endif // GS_HPP

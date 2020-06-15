@@ -75,8 +75,12 @@ float interpolate_f(int32_t x, float u1, int32_t x1, float u2, int32_t x2)
 const unsigned int GraphicsSynthesizerThread::max_vertices[8] = {1, 2, 2, 3, 3, 3, 2, 0};
 constexpr REG_64 GraphicsSynthesizerThread::abi_args[4];
 
+// global used to notify the core thread
+// of an exception on the gs thread
+std::exception_ptr ep = nullptr;
+
 GraphicsSynthesizerThread::GraphicsSynthesizerThread()
-    : frame_complete(false), local_mem(nullptr), jit_draw_pixel_block("GS-pixel"), jit_tex_lookup_block("GS-texture"),
+    : local_mem(nullptr), jit_draw_pixel_block("GS-pixel"), jit_tex_lookup_block("GS-texture"),
     emitter_dp(&jit_draw_pixel_block),
       emitter_tex(&jit_tex_lookup_block)
 {
@@ -153,64 +157,43 @@ GraphicsSynthesizerThread::~GraphicsSynthesizerThread()
     delete[] local_mem;
 }
 
-void GraphicsSynthesizerThread::wait_for_return(GSReturn type, GSReturnMessage &data)
-{
-    printf("[GS] Waiting for return\n");
-
-    while (true)
-    {
-        if (return_queue->pop(data))
-        {
-            if (data.type == death_error_t)
-            {
-                auto p = data.payload.death_error_payload;
-                auto data = std::string(p.error_str);
-                delete[] p.error_str;
-                Errors::die(data.c_str());
-                //There's probably a better way of doing this
-                //but I don't know how to make RAII work across threads properly
-            }
-
-            if (data.type == type)
-                return;
-            else
-            {
-                if (return_queue->was_empty())
-                {
-                    //Last message in the queue, so we don't want this one so we need to sleep
-                    return_queue->push(data); //Put it back on the queue, something else probably wants it
-                    printf("[GS] Waiting for return message, pushed last message on to queue type %d expecting %d\n", data.type, type);
-                    std::unique_lock<std::mutex> lk(data_mutex);
-                    notifier.wait(lk, [this] {return recieve_data; });
-                    recieve_data = false;
-                }
-                else
-                    return_queue->push(data); //Put it back on the queue, something else probably wants it
-            }
-              //Errors::die("[GS] return message expected %d but was %d!\n", type, data.type);
-        }
-        else
-        {
-            printf("[GS] No Messages, waiting for return message\n");
-            std::unique_lock<std::mutex> lk(data_mutex);
-            notifier.wait(lk, [this] {return recieve_data;});
-            recieve_data = false;
-        }
-    }
-}
-
 void GraphicsSynthesizerThread::send_message(GSMessage message)
 {
-    //printf("[GS] Notifying gs thread of new data\n");
+    // flush the fifo if it gets too large
+    // TODO: this is slow because of atomics
+    //if (!message_queue->was_full())
+    //    flush_fifo();
+
     message_queue->push(message);
-    send_data = true;
 }
 
-void GraphicsSynthesizerThread::wake_thread()
+void GraphicsSynthesizerThread::flush_fifo()
 {
-    printf("[GS] Waking GS Thread\n");
-    std::unique_lock<std::mutex> lk(data_mutex);
-    notifier.notify_one();
+    // notify the GS thread (fifo could be already empty)
+    {
+        std::unique_lock<std::mutex> lk(data_mutex);
+        data_notifier.notify_one();
+        send_data = true;
+    }
+    // wait for the fifo to clear
+    {
+        std::unique_lock<std::mutex> lk(fifo_mutex);
+        auto ret = fifo_notifier.wait_for(lk, std::chrono::milliseconds(500), [&]() {
+            return fifo_flushed;
+        });
+
+        fifo_flushed = false;
+
+        // if we timeout then just die to prevent a hang
+        if (!ret)
+            Errors::die("[GS_t] timeout waiting for fifo to flush, possible deadlock?");
+    }
+
+    // check for any exceptions
+    if (ep != nullptr)
+    {
+        std::rethrow_exception(ep);
+    }
 }
 
 void GraphicsSynthesizerThread::exit()
@@ -218,10 +201,12 @@ void GraphicsSynthesizerThread::exit()
     if (thread.joinable())
     {
         GSMessagePayload payload;
-        payload.no_payload = {0};
+        payload.no_payload = { };
         
         send_message({ GSCommand::die_t, payload });
-        wake_thread();
+
+        // flush so gs thread gets the die command
+        flush_fifo();
         thread.join();
     }
 }
@@ -232,6 +217,18 @@ void GraphicsSynthesizerThread::event_loop()
 
     bool gsdump_recording = false;
     ofstream gsdump_file;
+
+    // wait for our first data this run
+    // if we don't wait here first then fifo_flushed
+    // can be set to true at the bottom causing the wait in
+    // flush_fifo to immediately exit resulting in a spurious
+    // awakening of the core thread
+    {
+        std::unique_lock<std::mutex> lk(data_mutex);
+
+        data_notifier.wait(lk, [this] { return send_data; });
+        send_data = false;
+    }
 
     try
     {
@@ -307,21 +304,14 @@ void GraphicsSynthesizerThread::event_loop()
                     }
                     case render_crt_t:
                     {
-                        auto p = data.payload.render_payload;
-
-                        while (!p.target_mutex->try_lock())
-                        {
-                            printf("[GS_t] buffer lock failed!\n");
-                            std::this_thread::yield();
-                        }
-                        std::lock_guard<std::mutex> lock(*p.target_mutex, std::adopt_lock);
-                        render_CRT(p.target);
-                        GSReturnMessagePayload return_payload;
-                        return_payload.no_payload = { 0 };
-                        return_queue->push({ GSReturn::render_complete_t,return_payload });
-                        std::unique_lock<std::mutex> lk(data_mutex);
-                        recieve_data = true;
-                        notifier.notify_one();
+                        render_CRT(frame.current_buffer());
+                        break;
+                    }
+                    case request_frame:
+                    {
+                        auto p = data.payload.frame_payload;
+                        *p.buffer = frame.current_buffer();
+                        frame.flip();
                         break;
                     }
                     case assert_finish_t:
@@ -338,45 +328,43 @@ void GraphicsSynthesizerThread::event_loop()
                     }
                     case memdump_t:
                     {
-                        auto p = data.payload.render_payload;
+                        //auto p = data.payload.render_payload;
 
-                        while (!p.target_mutex->try_lock())
-                        {
-                            printf("[GS_t] buffer lock failed!\n");
-                            std::this_thread::yield();
-                        }
-                        std::lock_guard<std::mutex> lock(*p.target_mutex, std::adopt_lock);
-                        uint16_t width, height;
-                        memdump(p.target, width, height);
-                        GSReturnMessagePayload return_payload;
-                        return_payload.xy_payload = { width, height };
-                        return_queue->push({ GSReturn::gsdump_render_partial_done_t,return_payload });
-                        std::unique_lock<std::mutex> lk(data_mutex);
-                        recieve_data = true;
-                        notifier.notify_one();
+                        //while (!p.target_mutex->try_lock())
+                        //{
+                        //    printf("[GS_t] buffer lock failed!\n");
+                        //    std::this_thread::yield();
+                        //}
+                        //std::lock_guard<std::mutex> lock(*p.target_mutex, std::adopt_lock);
+                        //uint16_t width, height;
+                        //memdump(p.target, width, height);
+                        //GSReturnMessagePayload return_payload;
+                        //return_payload.xy_payload = { width, height };
+                        //return_queue->push({ GSReturn::gsdump_render_partial_done_t,return_payload });
+                        //std::unique_lock<std::mutex> lk(data_mutex);
+                        //recieve_data = true;
+                        //notifier.notify_one();
                         break;
                     }
                     case die_t:
+                    {
+                        // we have to do this here since this will return
+                        // before we hit the else statement
+                        {
+                            std::unique_lock<std::mutex> lk(fifo_mutex);
+                            fifo_notifier.notify_one();
+                            fifo_flushed = true;
+                        }
                         return;
+                    }
                     case load_state_t:
                     {
                         load_state(data.payload.load_state_payload.state);
-                        GSReturnMessagePayload return_payload;
-                        return_payload.no_payload = { 0 };
-                        return_queue->push({ GSReturn::load_state_done_t,return_payload });
-                        std::unique_lock<std::mutex> lk(data_mutex);
-                        recieve_data = true;
-                        notifier.notify_one();
                         break;
                     }
                     case save_state_t:
                     {
                         save_state(data.payload.save_state_payload.state);
-                        GSReturnMessagePayload return_payload;
-                        return_payload.no_payload = { 0 };
-                        return_queue->push({ GSReturn::save_state_done_t,return_payload });
-                        recieve_data = true;
-                        notifier.notify_one();
                         break;
                     }
                     case gsdump_t:
@@ -402,13 +390,10 @@ void GraphicsSynthesizerThread::event_loop()
                     }
                     case request_local_host_tx:
                     {
-                        GSReturnMessagePayload return_payload;
-                        return_payload.data_payload.status = (TRXDIR != 3);
-                        return_payload.data_payload.quad_data = local_to_host();
-                        return_queue->push({ GSReturn::local_host_transfer, return_payload });
-                        std::unique_lock<std::mutex> lk(data_mutex);
-                        recieve_data = true;
-                        notifier.notify_one();
+                        uint32_t status = (TRXDIR != 3);
+                        uint128_t quad_data = local_to_host();
+                        *data.payload.vram_payload.status = &status;
+                        *data.payload.vram_payload.quad_data = &quad_data;
                         break;
                     }
                     default:
@@ -417,22 +402,36 @@ void GraphicsSynthesizerThread::event_loop()
             }
             else
             {
-                printf("GS Thread: No messages waiting, going to sleep\n");
-                std::unique_lock<std::mutex> lk(data_mutex);
-                notifier.wait(lk, [this] {return send_data;});
-                send_data = false;
+                printf("[GS_t] FIFO empty, sleeping\n");
+                {
+                    std::unique_lock<std::mutex> lk(fifo_mutex);
+
+                    // notify the waiting thread that the fifo has cleared
+                    fifo_notifier.notify_one();
+                    fifo_flushed = true;
+                }
+                {
+                    std::unique_lock<std::mutex> lk(data_mutex);
+
+                    // wait until we get more data
+                    data_notifier.wait(lk, [this] { return send_data; });
+                    send_data = false;
+                }
             }
         }
     }
     catch (Emulation_error &e)
     {
-        GSReturnMessagePayload return_payload;
-        char* copied_string = new char[ERROR_STRING_MAX_LENGTH];
-        strncpy(copied_string, e.what(), ERROR_STRING_MAX_LENGTH);
-        return_payload.death_error_payload.error_str = { copied_string };
-        return_queue->push({ GSReturn::death_error_t, return_payload });
-        recieve_data = true;
-        notifier.notify_one();
+        // see flush_fifo
+        // store the exception and wake the core thread
+        ep = std::current_exception();
+
+        {
+            std::unique_lock<std::mutex> lk(fifo_mutex);
+
+            fifo_notifier.notify_one();
+            fifo_flushed = true;
+        }
     }
 }
 
@@ -443,9 +442,13 @@ void GraphicsSynthesizerThread::reset()
     if (!local_mem)
         local_mem = new uint8_t[1024 * 1024 * 4];
 
+    frame.reset();
+
+    fifo_flushed = false;
+    send_data = false;
+
     pixels_transferred = 0;
     num_vertices = 0;
-    frame_count = 0;
 
     COLCLAMP = true;
     SCANMSK = 0;
@@ -473,8 +476,7 @@ void GraphicsSynthesizerThread::reset()
 
     memset(screen_buffer, 0, sizeof(screen_buffer));
 
-    message_queue = std::make_unique<gs_fifo>();
-    return_queue = std::make_unique<gs_return_fifo>();
+    message_queue = std::make_unique<fifo_t>();
     thread = std::thread(&GraphicsSynthesizerThread::event_loop, this);
 }
 

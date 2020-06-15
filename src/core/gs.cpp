@@ -14,31 +14,18 @@ registers.
 **/
 
 GraphicsSynthesizer::GraphicsSynthesizer(INTC* intc) 
-    : intc(intc), frame_complete(false),
-    output_buffer1(nullptr), output_buffer2(nullptr)
+    : intc(intc), frame_complete(false)
 {
 }
 
 GraphicsSynthesizer::~GraphicsSynthesizer()
 {
     gs_thread.exit();
-
-    delete[] output_buffer1;
-    delete[] output_buffer2;
 }
 
 void GraphicsSynthesizer::reset()
 {
     gs_thread.reset();
-
-    if (!output_buffer1)
-        output_buffer1 = new uint32_t[1920 * 1280];
-
-    if (!output_buffer2)
-        output_buffer2 = new uint32_t[1920 * 1280];
-
-    current_lock = std::unique_lock<std::mutex>();
-    using_first_buffer = true;
     frame_count = 0;
     set_CRT(false, 0x2, false);
     reg.reset(false);
@@ -67,31 +54,14 @@ void GraphicsSynthesizer::set_CRT(bool interlaced, int mode, bool frame_mode)
 uint32_t* GraphicsSynthesizer::get_framebuffer()
 {
     uint32_t* out;
-    GSReturnMessage data;
 
-    gs_thread.wait_for_return(GSReturn::render_complete_t, data);
-    
-    if (using_first_buffer)
-    {
-        while (!output_buffer1_mutex.try_lock())
-        {
-            printf("[GS] buffer 1 lock failed!\n");
-            std::this_thread::yield();
-        }
-        current_lock = std::unique_lock<std::mutex>(output_buffer1_mutex, std::adopt_lock);
-        out = output_buffer1;
-    }
-    else
-    {
-        while (!output_buffer2_mutex.try_lock())
-        {
-            printf("[GS] buffer 2 lock failed!\n");
-            std::this_thread::yield();
-        }
-        current_lock = std::unique_lock<std::mutex>(output_buffer2_mutex, std::adopt_lock);
-        out = output_buffer2;
-    }
-    using_first_buffer = !using_first_buffer;
+    GSMessagePayload payload = {};
+    payload.frame_payload.buffer = &out;
+    gs_thread.send_message({ GSCommand::request_frame, payload });
+
+    // synchronize
+    gs_thread.flush_fifo();
+
     return out;
 }
 
@@ -104,9 +74,12 @@ void GraphicsSynthesizer::set_VBLANK(bool is_VBLANK)
 {
     GSMessagePayload payload;
     payload.vblank_payload = { is_VBLANK };
-    
+
     gs_thread.send_message({ GSCommand::set_vblank_t, payload });
-    gs_thread.wake_thread();
+
+    // synchronize
+    gs_thread.flush_fifo();
+
     reg.set_VBLANK(is_VBLANK);
 
     if (is_VBLANK)
@@ -146,46 +119,14 @@ void GraphicsSynthesizer::assert_FINISH()
 
 void GraphicsSynthesizer::render_CRT()
 {
-    GSMessagePayload payload;
+    GSMessagePayload payload = {};
 
-    if (using_first_buffer)
-        payload.render_payload = { output_buffer1, &output_buffer1_mutex };
-    else
-        payload.render_payload = { output_buffer2, &output_buffer2_mutex }; ;
-    
     gs_thread.send_message({ GSCommand::render_crt_t, payload });
-    gs_thread.wake_thread();
 }
 
 uint32_t* GraphicsSynthesizer::render_partial_frame(uint16_t& width, uint16_t& height)
 {
-    GSMessagePayload payload;
-
-    if (using_first_buffer)
-        payload.render_payload = { output_buffer1, &output_buffer1_mutex };
-    else
-        payload.render_payload = { output_buffer2, &output_buffer2_mutex }; ;
-    
-    gs_thread.send_message({ GSCommand::memdump_t,payload });
-    gs_thread.wake_thread();
-    GSReturnMessage data;
-    gs_thread.wait_for_return(GSReturn::gsdump_render_partial_done_t, data);
-    
-    width = data.payload.xy_payload.x;
-    height = data.payload.xy_payload.y;
-
-    if (using_first_buffer)
-    {
-        using_first_buffer = false;
-        current_lock = std::unique_lock<std::mutex>(output_buffer1_mutex);
-        return output_buffer1;
-    }
-    else
-    {
-        using_first_buffer = true;
-        current_lock = std::unique_lock<std::mutex>(output_buffer2_mutex);
-        return output_buffer2;
-    }
+    return nullptr;
 }
 
 void GraphicsSynthesizer::get_resolution(int &w, int &h)
@@ -311,38 +252,38 @@ void GraphicsSynthesizer::set_XYZF(uint32_t x, uint32_t y, uint32_t z, uint8_t f
     gs_thread.send_message({ GSCommand::set_xyzf_t, payload });
 }
 
-void GraphicsSynthesizer::load_state(std::ifstream &state)
+void GraphicsSynthesizer::load_state(std::ifstream& state)
 {
-    GSMessagePayload payload;
-    payload.load_state_payload = {&state};
+    GSMessagePayload payload = {};
+    payload.load_state_payload.state = &state;
+
     gs_thread.send_message({ GSCommand::load_state_t, payload });
-    gs_thread.wake_thread();
-    GSReturnMessage data;
-    gs_thread.wait_for_return(GSReturn::load_state_done_t, data);
+
+    // synchronize
+    gs_thread.flush_fifo();
     
     state.read((char*)&reg, sizeof(reg));
 }
 
-void GraphicsSynthesizer::save_state(std::ofstream &state)
+void GraphicsSynthesizer::save_state(std::ofstream& state)
 {
-    GSMessagePayload payload;
-    payload.save_state_payload = {&state};
+    GSMessagePayload payload = {};
+    payload.save_state_payload.state = &state;
 
     gs_thread.send_message({ GSCommand::save_state_t, payload });
-    gs_thread.wake_thread();
-    GSReturnMessage data;
-    gs_thread.wait_for_return(GSReturn::save_state_done_t, data);
-    
+
+    // synchronize
+    gs_thread.flush_fifo();
+
     state.write((char*)&reg, sizeof(reg));
 }
 
 void GraphicsSynthesizer::send_dump_request()
 {
-    GSMessagePayload p;
-    p.no_payload = { 0 };
+    GSMessagePayload payload;
+    payload.no_payload = {};
 
-    gs_thread.send_message({ gsdump_t, p });
-    gs_thread.wake_thread();
+    gs_thread.send_message({ gsdump_t, payload });
 }
 
 void GraphicsSynthesizer::send_message(GSMessage message)
@@ -350,19 +291,21 @@ void GraphicsSynthesizer::send_message(GSMessage message)
     gs_thread.send_message(message);
 }
 
-void GraphicsSynthesizer::wake_gs_thread()
-{
-    gs_thread.wake_thread();
-}
-
 std::tuple<uint128_t, uint32_t>GraphicsSynthesizer::request_gs_download()
 {
-    GSMessagePayload payload;
-    payload.no_payload = {};
+    GSMessagePayload payload = {};
+
+    uint128_t* data;
+    uint32_t* status;
+
+    payload.vram_payload.quad_data = &data;
+    payload.vram_payload.status = &status;
+
     gs_thread.send_message({ GSCommand::request_local_host_tx, payload });
-    gs_thread.wake_thread();
-    GSReturnMessage data;
-    gs_thread.wait_for_return(GSReturn::local_host_transfer, data);
-    return std::make_tuple(data.payload.data_payload.quad_data, data.payload.data_payload.status);
+
+    // synchronize
+    gs_thread.flush_fifo();
+
+    return std::make_tuple(*data, *status);
 }
 

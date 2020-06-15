@@ -295,7 +295,7 @@ void GraphicsInterface::feed_GIF(uint128_t data)
             gs->assert_FINISH();
             gs->set_CSR_FIFO(0x1); //FIFO Empty
         }
-        gs->wake_gs_thread();
+        //gs->wake_gs_thread();
         deactivate_PATH(active_path);
     }
 }

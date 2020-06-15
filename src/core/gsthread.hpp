@@ -32,10 +32,26 @@ struct SwizzleTable
 //Commands sent from the main thread to the GS thread.
 enum GSCommand:uint8_t 
 {
-    write64_t, write64_privileged_t, write32_privileged_t,
-    set_rgba_t, set_st_t, set_uv_t, set_xyz_t, set_xyzf_t, set_crt_t,
-    render_crt_t, assert_finish_t, assert_vsync_t, set_vblank_t, memdump_t, die_t,
-    save_state_t, load_state_t, gsdump_t, request_local_host_tx,
+    write64_t,
+    write64_privileged_t,
+    write32_privileged_t,
+    set_rgba_t,
+    set_st_t,
+    set_uv_t,
+    set_xyz_t,
+    set_xyzf_t,
+    set_crt_t,
+    render_crt_t,
+    assert_finish_t,
+    assert_vsync_t,
+    set_vblank_t,
+    memdump_t,
+    die_t,
+    save_state_t,
+    load_state_t,
+    gsdump_t,
+    request_local_host_tx,
+    request_frame
 };
 
 union GSMessagePayload 
@@ -84,11 +100,6 @@ union GSMessagePayload
     {
         bool vblank;
     } vblank_payload;
-    struct 
-    {
-        uint32_t* target;
-        std::mutex* target_mutex;
-    } render_payload;
     struct
     {
         std::ofstream* state;
@@ -101,6 +112,17 @@ union GSMessagePayload
     {
         uint8_t BLANK; 
     } no_payload;//C++ doesn't like the empty struct
+    struct
+    {
+        uint128_t** quad_data;
+        uint32_t** status;
+    } vram_payload;
+    struct
+    {
+      int inner_width, inner_height;
+      int width, height;
+      uint32_t** buffer;
+    } frame_payload;
 };
 
 struct GSMessage
@@ -134,11 +156,7 @@ union GSReturnMessagePayload
     {
         uint8_t BLANK;
     } no_payload;//C++ doesn't like the empty struct
-    struct
-    {
-        uint128_t quad_data;
-        uint32_t status;
-    } data_payload;
+
 };
 
 struct GSReturnMessage
@@ -146,9 +164,6 @@ struct GSReturnMessage
     GSReturn type;
     GSReturnMessagePayload payload;
 };
-
-typedef CircularFifo<GSMessage, 1024 * 1024 * 16> gs_fifo;
-typedef CircularFifo<GSReturnMessage, 1024> gs_return_fifo;
 
 struct PRMODE_REG
 {
@@ -336,31 +351,74 @@ struct VertexF
     }
 };
 
+
+struct SWAPCHAIN
+{
+    static const int BUFFER_SIZE = 1920 * 1280;
+
+    int current_buffer_id{ 0 };
+    uint32_t* buffer[2]{ nullptr, nullptr };
+
+    uint32_t* current_buffer()
+    {
+        return buffer[current_buffer_id];
+    }
+
+    void flip()
+    {
+        current_buffer_id ^= 1;
+    }
+
+    void reset()
+    {
+        for (int i = 0; i < 2; i++)
+        {
+            if(!buffer[i])
+                buffer[i] = new uint32_t[BUFFER_SIZE];
+
+            memset(buffer[i], 0, BUFFER_SIZE);
+        }
+
+        current_buffer_id = 0;
+    }
+
+    ~SWAPCHAIN()
+    {
+        for (int i = 0; i < 2; i++)
+            delete[] buffer[i];
+    }
+};
+
 typedef void (*GSDrawPixelPrologue)(int32_t x, int32_t y, uint32_t z, RGBAQ_REG& color);
 typedef void (*GSTexLookupPrologue)(int16_t u, int16_t v, TexLookupInfo* info);
 
 class GraphicsSynthesizerThread
 {
+    using fifo_t = CircularFifo<GSMessage, 1024 * 1024 * 4>;
+
     private:
 #ifdef _MSC_VER
         constexpr static REG_64 abi_args[] = {RCX, RDX, R8, R9};
 #else
         constexpr static REG_64 abi_args[] = {RDI, RSI, RDX, RCX};
 #endif
+
         //threading
         std::thread thread;
-        std::condition_variable notifier;
+        std::condition_variable data_notifier; // waits the gs thread
+        std::condition_variable fifo_notifier; // waits the core thread
 
         std::mutex data_mutex;
+        std::mutex fifo_mutex;
 
-        bool send_data = false;
-        bool recieve_data = false;
+        bool send_data{ false };
+        bool fifo_flushed{ false };
 
-        std::unique_ptr<gs_fifo> message_queue{ nullptr };
-        std::unique_ptr<gs_return_fifo> return_queue{ nullptr };
+        std::unique_ptr<fifo_t> message_queue{ nullptr };
 
-        bool frame_complete;
-        int frame_count;
+        // frame related
+        SWAPCHAIN frame;
+
         uint8_t* local_mem;
         uint8_t CRT_mode;
         uint32_t screen_buffer[2048 * 2048];
@@ -533,8 +591,9 @@ class GraphicsSynthesizerThread
         
         // safe to access from emu thread
         void send_message(GSMessage message);
-        void wake_thread();
-        void wait_for_return(GSReturn type, GSReturnMessage &data);
+        //void wake_thread();
+        //void wait_for_return(GSReturn type, GSReturnMessage &data);
+        void flush_fifo();
         void reset();
         void exit();
 };
