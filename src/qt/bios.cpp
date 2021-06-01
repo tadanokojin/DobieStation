@@ -66,7 +66,7 @@ BiosReader::BiosReader(QString path)
     int day = QString(romver.mid(12, 2)).toInt();
 
     bios_date = QDate(year, month, day).toString(
-        Qt::DateFormat::LocalDate
+        Qt::ISODate
     );
 
     valid = true;
@@ -74,7 +74,7 @@ BiosReader::BiosReader(QString path)
 
 QByteArray BiosReader::get_module(QString name) const
 {
-    int index = romdir.indexOf(name);
+    int index = romdir.indexOf(name.toLocal8Bit());
     auto tag = romdir.mid(index, ROMDIR_ENTRY_SIZE);
 
     if (tag.isEmpty())
